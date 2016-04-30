@@ -2,14 +2,15 @@ using System;
 using System.IO;
 using System.Text;
 using DisquuunCore;
+using DisquuunCore.Deserialize;
 
 public class DisquuunTests {
     private static Disquuun disquuun;
+	
     private static string gotJobId;
 
     public static void RunDisquuunTests () {
-		var connectionId = Guid.NewGuid().ToString();
-		
+		var connectionId = Guid.NewGuid().ToString();	
 		disquuun = new Disquuun(
 			connectionId,
 			"127.0.0.1", 
@@ -18,21 +19,34 @@ public class DisquuunTests {
 			connectedConId => {
 				RunTests(connectedConId);
 			},
-			(command, bytes0, bytes1) => {
-				if (bytes1 != null) TestLogger.Log("data received:" + command + " bytes0:" + bytes0.Length + " bytes1:" + bytes1.Length);
-				else TestLogger.Log("data received:" + command + " bytes0:" + bytes0.Length);
+			(command, byteDatas) => {
+				TestLogger.Log("data received:" + command + " byteDatas:" + byteDatas.Length);
 				
 				switch (command) {
+					case Disquuun.DisqueCommand.ADDJOB: {
+						var addedJobId = DisquuunDeserializer.AddJob(byteDatas);
+						TestLogger.Log("addedJobId:" + addedJobId);
+						break;
+					}
 					case Disquuun.DisqueCommand.GETJOB: {
-						var jobIdStr = Encoding.UTF8.GetString(bytes0, 0, bytes0.Length);
-						// TestLogger.Log("jobIdStr:" + jobIdStr);
-						
-						gotJobId = jobIdStr;
+						var jobDatas = DisquuunDeserializer.GetJob(byteDatas);
+						foreach (var jobData in jobDatas) {
+							var jobIdStr = jobData.jobId;
+							// TestLogger.Log("jobIdStr:" + jobIdStr);
+							
+							// ちゃんとした非同期の組み合わせテスト書かないとな。
+							gotJobId = jobIdStr;
+						}
+						break;
+					}
+					case Disquuun.DisqueCommand.INFO: {
+						var infoStr = DisquuunDeserializer.Info(byteDatas);
+						TestLogger.Log("infoStr:" + infoStr);
 						break;
 					}
 					case Disquuun.DisqueCommand.HELLO: {
-						var info = Encoding.UTF8.GetString(bytes0, 0, bytes0.Length);
-						TestLogger.Log("info:" + info);
+						var helloStr = DisquuunDeserializer.Hello(byteDatas);
+						TestLogger.Log("helloStr:" + helloStr);
 						break;
 					}
 					default: {
@@ -75,10 +89,10 @@ public class DisquuunTests {
 			// add -> get -> fastack
 			{
 				if (counter == 30) {
-					disquuun.AddJob("testV", new byte[10]{0,1,2,3,4,5,6,7,8,9}, 0);
+					disquuun.AddJob("testQ", new byte[10]{0,1,2,3,4,5,6,7,8,9}, 0);
 				}
 				if (counter == 40) {
-					disquuun.GetJob(new string[]{"testV"});
+					disquuun.GetJob(new string[]{"testQ"});
 				}
 				if (counter == 50) {
 					disquuun.FastAck(new string[]{gotJobId});
@@ -94,12 +108,16 @@ public class DisquuunTests {
 			// }
 			
 			
-			if (counter == 160) {// 複数件がいっぺんにくるケース
-				disquuun.Info();
-				disquuun.Info();
-				disquuun.Info();
-				disquuun.Info();
-				disquuun.Info();
+			// if (counter == 150) {// 複数件がいっぺんにくるケース
+			// 	disquuun.Info();
+			// 	disquuun.Info();
+			// 	disquuun.Info();
+			// 	disquuun.Info();
+			// 	disquuun.Info();
+			// 	disquuun.Info();
+			// }
+			
+			if (counter == 160) {
 				disquuun.Info();
 			}
 			
@@ -111,7 +129,6 @@ public class DisquuunTests {
 				disquuun.Disconnect();
 				return false;
 			}
-			
 			
 			counter++;
 			return true;

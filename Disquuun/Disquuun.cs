@@ -286,6 +286,8 @@ namespace DisquuunCore {
 				while (cursor < bytesTransferred) {
 					if (0 < cursor && 0 < commands.Count) currentCommand = commands.Dequeue();
 					
+					// TestLogger.Log("currentCommand:" + currentCommand);
+					
 					// データの先頭しか受け取れないケースとかがありそうな気がする、発生を検知したい。バッファサイズ小さくして試すか。
 					if (sourceBuffer.Length - 1 <= bytesTransferred) {
 						TestLogger.Log("too much size data comming. んでどうなるんだろう。");
@@ -495,9 +497,30 @@ namespace DisquuunCore {
 							break;
 						}
 						case DisqueCommand.HELLO: {
-							TestLogger.Log("not yet good.");
+							string version;
+							string thisNodeId;
+							List<string> nodeIdsAndInfos = new List<string>();
+							/*
+								:*3
+									:1 version [0][0]
+									
+									$40 this node ID [0][1]
+										002698920b158ba29ff8d41d3e5303ceaf0e8d45
+									
+									*4 [1~n][0~3]
+										$40
+											002698920b158ba29ff8d41d3e5303ceaf0e8d45
+										
+										$0
+											""
+										
+										$4
+											7711
+										
+										$1
+											1
+							*/
 							
-							var strBuilder = new StringBuilder();
 							{
 								// *
 								var lineEndCursor = ReadLine(sourceBuffer, cursor);
@@ -510,18 +533,18 @@ namespace DisquuunCore {
 							}
 							
 							{
-								// :Identity count
+								// : format version
 								var lineEndCursor = ReadLine(sourceBuffer, cursor);
 								cursor = cursor + 1;// add header byte size = 1.
 								
-								var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-								var countNum = Convert.ToInt32(countStr);
+								version = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+								// var countNum = Convert.ToInt32(countStr);
 								// TestLogger.Log(":countNum:" + countNum);
 								cursor = lineEndCursor + 2;// CR + LF
 							}
 							
 							{
-								// $
+								// $ this node id
 								var lineEndCursor = ReadLine(sourceBuffer, cursor);
 								cursor = cursor + 1;// add header byte size = 1.
 								
@@ -531,16 +554,14 @@ namespace DisquuunCore {
 								
 								cursor = lineEndCursor + 2;// CR + LF
 								
-								var idStr = enc.GetString(sourceBuffer, cursor, strNum);
+								thisNodeId = enc.GetString(sourceBuffer, cursor, strNum);
 								// TestLogger.Log("idStr:" + idStr);
-								
-								strBuilder.Append(idStr + CharEOL);
 								
 								cursor = cursor + strNum + 2;// CR + LF
 							}
 							
 							{
-								// *
+								// * node ids
 								var lineEndCursor = ReadLine(sourceBuffer, cursor);
 								cursor = cursor + 1;// add header byte size = 1.
 								
@@ -550,30 +571,90 @@ namespace DisquuunCore {
 								
 								cursor = lineEndCursor + 2;// CR + LF
 								
-								for (var i = 0; i < bulkCountNum; i++) {
-									// $
-									var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
-									cursor = cursor + 1;// add header byte size = 1.
+								// nodeId, ip, port, priority.
+								for (var i = 0; i < bulkCountNum/4; i++) {
+									var idStr = string.Empty;
 									
-									var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
-									var strNum = Convert.ToInt32(countStr);
-									// TestLogger.Log("id strNum:" + strNum);
+									// $ nodeId
+									{
+										var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
+										cursor = cursor + 1;// add header byte size = 1.
+										
+										var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
+										var strNum = Convert.ToInt32(countStr);
+										
+										cursor = lineEndCursor2 + 2;// CR + LF
+										
+										idStr = enc.GetString(sourceBuffer, cursor, strNum);
+										nodeIdsAndInfos.Add(idStr);
+										
+										cursor = cursor + strNum + 2;// CR + LF
+									}
 									
-									cursor = lineEndCursor2 + 2;// CR + LF
+									{
+										var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
+										cursor = cursor + 1;// add header byte size = 1.
+										
+										var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
+										var strNum = Convert.ToInt32(countStr);
+										
+										cursor = lineEndCursor2 + 2;// CR + LF
+										
+										var ipStr = enc.GetString(sourceBuffer, cursor, strNum);
+										nodeIdsAndInfos.Add(ipStr);
+										
+										cursor = cursor + strNum + 2;// CR + LF
+									}
 									
-									var idStr = enc.GetString(sourceBuffer, cursor, strNum);
-									// TestLogger.Log("idStr:" + idStr);
+									{
+										var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
+										cursor = cursor + 1;// add header byte size = 1.
+										
+										var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
+										var strNum = Convert.ToInt32(countStr);
+										
+										cursor = lineEndCursor2 + 2;// CR + LF
+										
+										var portStr = enc.GetString(sourceBuffer, cursor, strNum);
+										nodeIdsAndInfos.Add(portStr);
+										
+										cursor = cursor + strNum + 2;// CR + LF
+									}
 									
-									strBuilder.Append(idStr + CharEOL);
-									
-									cursor = cursor + strNum + 2;// CR + LF
+									{
+										var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
+										cursor = cursor + 1;// add header byte size = 1.
+										
+										var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
+										var strNum = Convert.ToInt32(countStr);
+										
+										cursor = lineEndCursor2 + 2;// CR + LF
+										
+										var priorityStr = enc.GetString(sourceBuffer, cursor, strNum);
+										nodeIdsAndInfos.Add(priorityStr);
+										
+										cursor = cursor + strNum + 2;// CR + LF
+									}
 								}
 							}
 							
 							if (Received != null) {
-								var newBuffer = enc.GetBytes(strBuilder.ToString());
-								Received(currentCommand, new ByteDatas[]{new ByteDatas(newBuffer)});
-							} 
+								var versionBytes = enc.GetBytes(version);
+								var thisNodeIdBytes = enc.GetBytes(thisNodeId);
+								
+								var byteDatas = new ByteDatas[1 + nodeIdsAndInfos.Count/4];
+								byteDatas[0] = new ByteDatas(versionBytes,thisNodeIdBytes);
+								
+								for (var index = 0; index < nodeIdsAndInfos.Count/4; index++) {
+									var nodeId = enc.GetBytes(nodeIdsAndInfos[index*4 + 0]);
+									var ip = enc.GetBytes(nodeIdsAndInfos[index*4 + 1]);
+									var port = enc.GetBytes(nodeIdsAndInfos[index*4 + 2]);
+									var priority = enc.GetBytes(nodeIdsAndInfos[index*4 + 3]);
+									
+									byteDatas[index + 1] = new ByteDatas(nodeId, ip, port, priority);
+								}
+								Received(currentCommand, byteDatas);
+							}
 							break;
 						}
 						case DisqueCommand.QLEN: {
@@ -721,6 +802,7 @@ namespace DisquuunCore {
 			API core
 		*/
 		private void SendBytes (DisqueCommand commandEnum, params object[] args) {
+			TestLogger.Log("commandEnum:" + commandEnum);
 			int length = 1 + args.Length;
 			
 			var command = commandEnum.ToString();

@@ -6,8 +6,9 @@ using DisquuunCore.Deserialize;
 
 public class DisquuunTests {
     private static Disquuun disquuun;
+	private static Disquuun disquuun2;
 	
-    private static string gotJobId;
+    private static string latestGotJobId;
 
     public static void RunDisquuunTests () {
 		var connectionId = Guid.NewGuid().ToString();	
@@ -31,11 +32,10 @@ public class DisquuunTests {
 					case Disquuun.DisqueCommand.GETJOB: {
 						var jobDatas = DisquuunDeserializer.GetJob(byteDatas);
 						foreach (var jobData in jobDatas) {
-							var jobIdStr = jobData.jobId;
-							// TestLogger.Log("jobIdStr:" + jobIdStr);
+							var gotJobIdStr = jobData.jobId;
+							TestLogger.Log("gotJobIdStr:" + gotJobIdStr);
 							
-							// ちゃんとした非同期の組み合わせテスト書かないとな。
-							gotJobId = jobIdStr;
+							latestGotJobId = gotJobIdStr;
 						}
 						break;
 					}
@@ -45,8 +45,18 @@ public class DisquuunTests {
 						break;
 					}
 					case Disquuun.DisqueCommand.HELLO: {
-						var helloStr = DisquuunDeserializer.Hello(byteDatas);
-						TestLogger.Log("helloStr:" + helloStr);
+						try {
+						var helloData = DisquuunDeserializer.Hello(byteDatas);
+						TestLogger.Log("helloData	vr:" + helloData.version);
+						TestLogger.Log("helloData	id:" + helloData.sourceNodeId);
+						
+						TestLogger.Log("helloData	node Id:" + helloData.nodeDatas[0].nodeId);
+						TestLogger.Log("helloData	node ip:" + helloData.nodeDatas[0].ip);
+						TestLogger.Log("helloData	node pt:" + helloData.nodeDatas[0].port);
+						TestLogger.Log("helloData	node pr:" + helloData.nodeDatas[0].priority);
+						} catch (Exception e) {
+							TestLogger.Log("e:" + e);
+						}
 						break;
 					}
 					default: {
@@ -65,6 +75,14 @@ public class DisquuunTests {
 				TestLogger.Log("disconnectedConId:" + disconnectedConId);
 			}
 		);
+		
+		var connectionId2 = Guid.NewGuid().ToString();
+		disquuun2 = new Disquuun(
+			connectionId2,
+			"127.0.0.1", 
+			7711,
+			102400
+		);
 	}
 	
 	private static void RunTests (string connectedConId) {
@@ -82,7 +100,7 @@ public class DisquuunTests {
 					disquuun.GetJob(new string[]{"testQ"});
 				}
 				if (counter == 20) {
-					disquuun.AckJob(new string[]{gotJobId});
+					disquuun.AckJob(new string[]{latestGotJobId});
 				}
 			}
 			
@@ -95,38 +113,77 @@ public class DisquuunTests {
 					disquuun.GetJob(new string[]{"testQ"});
 				}
 				if (counter == 50) {
-					disquuun.FastAck(new string[]{gotJobId});
+					disquuun.FastAck(new string[]{latestGotJobId});
 				}
 			}
 			
-			// if (counter == 40) {
-			// 	disqueSharp.GetJob(new string[]{"testQ"});
+			// empty queue, will waiting data.
+			{
+				if (counter == 60) {
+					// start waiting,
+					disquuun.GetJob(new string[]{"testV"});
+				}
+				if (counter == 70) {
+					// add data to queue, then receive data from disquuun2.
+					disquuun2.AddJob("testV", new byte[10]{0,1,2,3,4,5,6,7,8,9}, 0);
+				}
+				if (counter == 80) {
+					disquuun.FastAck(new string[]{latestGotJobId});
+				}
+			}
+			
+			// non exist queue. never back until created.
+			{
+				if (counter == 80) {
+					disquuun.GetJob(new string[]{"testR"});
+				}
+				if (counter == 90) {
+					disquuun2.AddJob("testR", new byte[10]{0,1,2,3,4,5,6,7,8,9}, 0);
+				}
+				if (counter == 100) {
+					disquuun.FastAck(new string[]{latestGotJobId});
+				}
+			}
+			
+			
+			// blocking with empty queue.
+			{
+				if (counter == 120) {
+					disquuun.GetJob(new string[]{"testS"});
+				}
+				if (counter == 130) {
+					// blocked by getting job from empty queue. until add job to it.
+					disquuun.Hello();
+				}
+				if (counter == 140) {
+					disquuun2.AddJob("testS", new byte[10]{0,1,2,3,4,5,6,7,8,9}, 0);
+				}
+				if (counter == 150) {
+					disquuun.FastAck(new string[]{latestGotJobId});
+				}
+			}
+			
+			
+			// if (counter == 200) {
+			// 	disquuun.Info();
+			// 	disquuun.Info();
+			// 	disquuun.Info();
+			// 	disquuun.Info();
+			// 	disquuun.Info();
+			// 	disquuun.Info();
 			// }
 			
-			// if (counter == 50) {
-			// 	disqueSharp.GetJob(new string[]{"testQ"});
-			// }
-			
-			
-			// if (counter == 150) {// 複数件がいっぺんにくるケース
-			// 	disquuun.Info();
-			// 	disquuun.Info();
-			// 	disquuun.Info();
-			// 	disquuun.Info();
-			// 	disquuun.Info();
-			// 	disquuun.Info();
-			// }
-			
-			if (counter == 160) {
+			if (counter == 210) {
 				disquuun.Info();
 			}
 			
-			if (counter == 170) {
+			if (counter == 220) {
 				disquuun.Hello();
 			}
 			
-			if (counter == 200) {
+			if (counter == 230) {
 				disquuun.Disconnect();
+				disquuun2.Disconnect();
 				return false;
 			}
 			

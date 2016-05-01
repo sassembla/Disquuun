@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace DisquuunCore.Deserialize {
@@ -37,8 +39,42 @@ namespace DisquuunCore.Deserialize {
 			return Encoding.UTF8.GetString(data[0].bytesArray[0], 0, data[0].bytesArray[0].Length);
 		}
 		
-		public static string Hello (Disquuun.ByteDatas[] data) {
-			return Encoding.UTF8.GetString(data[0].bytesArray[0], 0, data[0].bytesArray[0].Length);
+		public struct HelloData {
+			public readonly string version;
+			public readonly string sourceNodeId;
+			public readonly NodeData[] nodeDatas;
+			public HelloData (string version, string sourceNodeId, NodeData[] nodeDatas) {
+				this.version = version;
+				this.sourceNodeId = sourceNodeId;
+				this.nodeDatas = nodeDatas;
+			}
+		}
+		public struct NodeData {
+			public readonly string nodeId;
+			public readonly string ip;
+			public readonly int port;
+			public readonly int priority;
+			public NodeData (string nodeId, string ip, int port, int priority) {
+				this.nodeId = nodeId;
+				this.ip = ip;
+				this.port = port;
+				this.priority = priority;
+			}
+		}
+		
+		public static HelloData Hello (Disquuun.ByteDatas[] data) {
+			var version = Encoding.UTF8.GetString(data[0].bytesArray[0]);
+			var sourceNodeId = Encoding.UTF8.GetString(data[0].bytesArray[1]);
+			var nodeDatas = new List<NodeData>();
+			for (var i = 1; i < data.Length; i++) {
+				var nodeIdStr = Encoding.UTF8.GetString(data[i].bytesArray[0]);
+				var ipStr = Encoding.UTF8.GetString(data[i].bytesArray[1]);
+				var portInt = Convert.ToInt16(Encoding.UTF8.GetString(data[i].bytesArray[2]));
+				var priorityInt = Convert.ToInt16(Encoding.UTF8.GetString(data[i].bytesArray[3]));
+				nodeDatas.Add(new NodeData(nodeIdStr, ipStr, portInt, priorityInt));
+			}
+			var helloData = new HelloData(version, sourceNodeId, nodeDatas.ToArray());
+			return helloData;
 		}
 	}
 	

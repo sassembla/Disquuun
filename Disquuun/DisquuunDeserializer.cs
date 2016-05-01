@@ -1,4 +1,3 @@
-using System;
 using System.Text;
 
 namespace DisquuunCore.Deserialize {
@@ -6,8 +5,7 @@ namespace DisquuunCore.Deserialize {
 	public static class DisquuunDeserializer {
 		
 		public static string AddJob (Disquuun.ByteDatas[] data) {
-			var idStrBytes = new byte[data[0].bytesArray[0].Length];
-			TestLogger.Log("idStrBytes:" + idStrBytes.Length);
+			var idStrBytes = data[0].bytesArray[0];
 			return Encoding.UTF8.GetString(idStrBytes);
 		}
 		

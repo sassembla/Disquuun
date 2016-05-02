@@ -8,7 +8,7 @@ lightweight, small, independent. not depends on any Redis code.
 ```C#
 using DisquuunCore;
 
-private Disquuun disquuun;
+Disquuun disquuun;
 
 string connectionId = "newDisqueConnectionId";
 
@@ -39,4 +39,6 @@ disquuun = new Disquuun(
 		// disconnected.
 	}
 );
+
+disquuun.AddJob("testQ", new byte[10]{0,1,2,3,4,5,6,7,8,9}, 0);
 ```

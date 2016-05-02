@@ -29,14 +29,26 @@ namespace DisquuunCore.Deserialize {
 			return jobDatas;
 		}
 	
-// ACKJOB,// jobid1 jobid2 ... jobidN
-// FASTACK,// jobid1 jobid2 ... jobidN
-// WORKING,// jobid
-// NACK,// <job-id> ... <job-id>
-	
-	
+		public static int DeserializeInt (Disquuun.ByteDatas[] data) {
+			var valStr = Encoding.UTF8.GetString(data[0].bytesArray[0]);
+			return Convert.ToInt32(valStr);
+		}
+		public static int AckJob (Disquuun.ByteDatas[] data) {
+			return DeserializeInt(data);
+		}
+		public static int FastAck (Disquuun.ByteDatas[] data) {
+			return DeserializeInt(data);
+		}
+		public static int Working (Disquuun.ByteDatas[] data) {
+			return DeserializeInt(data);
+		}
+		
+		public static int Nack (Disquuun.ByteDatas[] data) {
+			return DeserializeInt(data);
+		}
+		
 		public static string Info (Disquuun.ByteDatas[] data) {
-			return Encoding.UTF8.GetString(data[0].bytesArray[0], 0, data[0].bytesArray[0].Length);
+			return Encoding.UTF8.GetString(data[0].bytesArray[0]);
 		}
 		
 		public struct HelloData {
@@ -76,9 +88,12 @@ namespace DisquuunCore.Deserialize {
 			var helloData = new HelloData(version, sourceNodeId, nodeDatas.ToArray());
 			return helloData;
 		}
-	}
-	
-// QLEN,// <queue-name>
+		
+		public static int Qlen (Disquuun.ByteDatas[] data) {
+			var qLenStr = Encoding.UTF8.GetString(data[0].bytesArray[0]);
+			return Convert.ToInt32(qLenStr);
+		}
+		
 // QSTAT,// <queue-name>
 // QPEEK,// <queue-name> <count>
 // ENQUEUE,// <job-id> ... <job-id>
@@ -88,6 +103,9 @@ namespace DisquuunCore.Deserialize {
 // QSCAN,// [COUNT <count>] [BUSYLOOP] [MINLEN <len>] [MAXLEN <len>] [IMPORTRATE <rate>]
 // JSCAN,// [<cursor>] [COUNT <count>] [BUSYLOOP] [QUEUE <queue>] [STATE <state1> STATE <state2> ... STATE <stateN>] [REPLY all|id]
 // PAUSE,// <queue-name> option1 [option2 ... optionN]
+	
+		
+	}
 		
 		
 }

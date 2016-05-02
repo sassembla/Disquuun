@@ -13,7 +13,7 @@ namespace DisquuunCore {
 		
 		private readonly Action<string> Connected;
 		private readonly Action<DisqueCommand, ByteDatas[]> Received;
-		private readonly Action<DisqueCommand, byte[]> Failed;
+		private readonly Action<DisqueCommand, string> Failed;
 		private readonly Action<Exception> Error;
 		private readonly Action<string> Closed;
 		
@@ -82,7 +82,7 @@ namespace DisquuunCore {
 			long bufferSize,
 			Action<string> Connected=null,
 			Action<DisqueCommand, ByteDatas[]> Received=null,
-			Action<DisqueCommand, byte[]> Failed=null,
+			Action<DisqueCommand, string> Failed=null,
 			Action<Exception> Error=null,
 			Action<string> Closed=null
 		) {
@@ -216,12 +216,13 @@ namespace DisquuunCore {
 			if (0 < args.BytesTransferred) {
 				// ここで複数件受け取る可能性がある。
 				// で、あれば、delimiterとかがここに入ってくる。データが切れることはあるのかな、、バッファオーバーしたらぶっちぎれるんだよな、、そのへんまずやってみるか。
+				// あと、サイズが0で帰ってくることがあるんかな、、
 				
 				// TestLogger.Log("複数件突っ込まれるのでは = データが複数入るのでは、、？ YES。 途中でちぎれるのでは、、? <- わからん、、");
 				// TestLogger.Log("データのもち越しどうなるんだろう");
 				
 				var cursor = DisqueFilter.Evaluate(command, token.stack, args.BytesTransferred, args.Buffer, Received, Failed);
-				TestLogger.Log("args.BytesTransferred:" + args.BytesTransferred + " vs cursor:" + cursor);
+				if (cursor != args.BytesTransferred) TestLogger.Log("command:" + command + " args.BytesTransferred:" + args.BytesTransferred + " vs cursor:" + cursor);
 			}
 			
 			// continue to receive.
@@ -280,7 +281,7 @@ namespace DisquuunCore {
 			transform disque result to byte datas. 
 		*/
 		public static class DisqueFilter {
-			public static int Evaluate(DisqueCommand currentCommand, Queue<DisqueCommand> commands, int bytesTransferred, byte[] sourceBuffer, Action<DisqueCommand, ByteDatas[]> Received, Action<DisqueCommand, byte[]> Failed) {
+			public static int Evaluate(DisqueCommand currentCommand, Queue<DisqueCommand> commands, int bytesTransferred, byte[] sourceBuffer, Action<DisqueCommand, ByteDatas[]> Received, Action<DisqueCommand, string> Failed) {
 				int cursor = 0;
 				
 				while (cursor < bytesTransferred) {
@@ -299,6 +300,20 @@ namespace DisquuunCore {
 					switch (currentCommand) {
 						case DisqueCommand.ADDJOB: {
 							switch (sourceBuffer[cursor]) {
+								case ByteError: {
+									// -
+									var lineEndCursor = ReadLine(sourceBuffer, cursor);
+									cursor = cursor + 1;// add header byte size = 1.
+									
+									if (Received != null) {
+										var errorStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+										// TestLogger.Log("errorStr:" + errorStr);
+										Failed(currentCommand, errorStr);
+									}
+									
+									cursor = lineEndCursor + 2;// CR + LF
+									break;
+								}
 								case ByteStatus: {
 									// +
 									var lineEndCursor = ReadLine(sourceBuffer, cursor);
@@ -318,6 +333,226 @@ namespace DisquuunCore {
 									cursor = lineEndCursor + 2;// CR + LF
 									break;
 								}
+								default: {
+									TestLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor]);
+									cursor = bytesTransferred;
+									break;
+								}
+							}
+							break;
+						}
+						case DisqueCommand.GETJOB: {
+							ByteDatas[] jobDatas = null;
+							switch (sourceBuffer[cursor]) {
+								case ByteMultiBulk: {
+									{
+										// *
+										var lineEndCursor = ReadLine(sourceBuffer, cursor);
+										cursor = cursor + 1;// add header byte size = 1.
+										
+										var bulkCountStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+										var bulkCountNum = Convert.ToInt32(bulkCountStr);
+										// TestLogger.Log("bulkCountNum:" + bulkCountNum);
+										cursor = lineEndCursor + 2;// CR + LF
+										
+										jobDatas = new ByteDatas[bulkCountNum];
+										
+										for (var i = 0; i < bulkCountNum; i++) {
+											{
+												// *
+												var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
+												cursor = cursor + 1;// add header byte size = 1.
+												
+												var bulkCountStr2 = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
+												var bulkCountNum2 = Convert.ToInt32(bulkCountStr2);
+												// TestLogger.Log("bulkCountNum2:" + bulkCountNum2);
+												cursor = lineEndCursor2 + 2;// CR + LF
+											}
+											
+											// queueName
+											{
+												// $
+												var lineEndCursor3 = ReadLine(sourceBuffer, cursor);
+												cursor = cursor + 1;// add header byte size = 1.
+												
+												var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
+												var strNum = Convert.ToInt32(countStr);
+												// TestLogger.Log("id strNum:" + strNum);
+												
+												cursor = lineEndCursor3 + 2;// CR + LF
+												
+												var nameStr = enc.GetString(sourceBuffer, cursor, strNum);
+												// TestLogger.Log("nameStr:" + nameStr);
+												
+												cursor = cursor + strNum + 2;// CR + LF
+											}
+											
+											var jobIdIndex = 0;
+											var jobIdLength = 0;
+											
+											// jobId
+											{
+												// $
+												var lineEndCursor3 = ReadLine(sourceBuffer, cursor);
+												cursor = cursor + 1;// add header byte size = 1.
+												
+												var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
+												var strNum = Convert.ToInt32(countStr);
+												// TestLogger.Log("id strNum:" + strNum);
+												
+												cursor = lineEndCursor3 + 2;// CR + LF
+												
+												jobIdIndex = cursor;
+												jobIdLength = strNum;
+												// var jobIdSrt = enc.GetString(sourceBuffer, cursor, strNum);
+												// TestLogger.Log("jobIdSrt:" + jobIdSrt);
+												
+												cursor = cursor + strNum + 2;// CR + LF
+											}
+											
+											// jobData
+											{
+												// $
+												var lineEndCursor3 = ReadLine(sourceBuffer, cursor);
+												cursor = cursor + 1;// add header byte size = 1.
+												
+												var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
+												var strNum = Convert.ToInt32(countStr);
+												// TestLogger.Log("data strNum:" + strNum);
+												
+												cursor = lineEndCursor3 + 2;// CR + LF
+												
+												var jobIdBytes = new byte[jobIdLength];
+												Array.Copy(sourceBuffer, jobIdIndex, jobIdBytes, 0, jobIdLength);
+												
+												var dataBytes = new byte[strNum];
+												Array.Copy(sourceBuffer, cursor, dataBytes, 0, strNum);
+												
+												jobDatas[i] = new ByteDatas(jobIdBytes, dataBytes);
+												
+												cursor = cursor + strNum + 2;// CR + LF
+											}	
+										}
+									}
+									
+									if (Received != null) {
+										if (jobDatas != null) {
+											if (0 < jobDatas.Length) {
+												Received(currentCommand, jobDatas);
+											} 	
+										}
+									}
+									break;
+								}
+								default: {
+									TestLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor]);
+									cursor = bytesTransferred;
+									break;
+								}
+							}
+							break;
+						}
+						case DisqueCommand.ACKJOB:
+						case DisqueCommand.FASTACK: {
+							switch (sourceBuffer[cursor]) {
+								case ByteInt: {
+									// :Identity count
+									var lineEndCursor = ReadLine(sourceBuffer, cursor);
+									cursor = cursor + 1;// add header byte size = 1.
+									
+									if (Received != null) { 	
+										// var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+										// var countNum = Convert.ToInt32(countStr);
+										// TestLogger.Log("countNum:" + countNum);
+										
+										var countBuffer = new byte[lineEndCursor - cursor];
+										Array.Copy(sourceBuffer, cursor, countBuffer, 0, countBuffer.Length);
+										
+										var byteData = new ByteDatas(countBuffer);
+										
+										Received(currentCommand, new ByteDatas[]{byteData});
+									}
+									
+									cursor = lineEndCursor + 2;// CR + LF
+									break;
+								}
+								default: {
+									TestLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor]);
+									cursor = bytesTransferred;
+									break;
+								}
+							}
+							break;
+						}
+						case DisqueCommand.WORKING: {
+							switch (sourceBuffer[cursor]) {
+								case ByteInt: {
+									// :Int count
+									var lineEndCursor = ReadLine(sourceBuffer, cursor);
+									cursor = cursor + 1;// add header byte size = 1.
+									
+									if (Received != null) { 	
+										// var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+										// var countNum = Convert.ToInt32(countStr);
+										// TestLogger.Log("countNum:" + countNum);
+										
+										var countBuffer = new byte[lineEndCursor - cursor];
+										Array.Copy(sourceBuffer, cursor, countBuffer, 0, countBuffer.Length);
+										
+										var byteData = new ByteDatas(countBuffer);
+										
+										Received(currentCommand, new ByteDatas[]{byteData});
+									}
+									
+									cursor = lineEndCursor + 2;// CR + LF
+									break;
+								}
+								case ByteError: {
+									// -NOJOB Job not known in the context of this node.
+									var lineEndCursor = ReadLine(sourceBuffer, cursor);
+									cursor = cursor + 1;// add header byte size = 1.
+									
+									if (Received != null) {
+										var errorStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+										// TestLogger.Log("errorStr:" + errorStr);
+										Failed(currentCommand, errorStr);
+									}
+									
+									cursor = lineEndCursor + 2;// CR + LF
+									break;
+								}
+								default: {
+									TestLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor]);
+									cursor = bytesTransferred;
+									break;
+								}
+							}
+							cursor = bytesTransferred;
+							break;
+						}
+						case DisqueCommand.NACK: {
+							switch (sourceBuffer[cursor]) {
+								case ByteInt: {
+									// :Int count
+									var lineEndCursor = ReadLine(sourceBuffer, cursor);
+									cursor = cursor + 1;// add header byte size = 1.
+									
+									if (Received != null) { 	
+										// var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+										// var countNum = Convert.ToInt32(countStr);
+										// TestLogger.Log("countNum:" + countNum);
+										
+										var countBuffer = new byte[lineEndCursor - cursor];
+										Array.Copy(sourceBuffer, cursor, countBuffer, 0, countBuffer.Length);
+										
+										var byteData = new ByteDatas(countBuffer);
+										
+										Received(currentCommand, new ByteDatas[]{byteData});
+									}
+									
+									cursor = lineEndCursor + 2;// CR + LF
+									break;
+								}
 								case ByteError: {
 									// -
 									var lineEndCursor = ReadLine(sourceBuffer, cursor);
@@ -326,384 +561,302 @@ namespace DisquuunCore {
 									if (Received != null) {
 										var errorStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
 										// TestLogger.Log("errorStr:" + errorStr);
-										Failed(currentCommand, enc.GetBytes(errorStr));
+										Failed(currentCommand, errorStr);
 									}
 									
 									cursor = lineEndCursor + 2;// CR + LF
 									break;
 								}
 								default: {
+									TestLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor]);
+									cursor = bytesTransferred;
 									break;
 								}
 							}
 							break;
 						}
-						case DisqueCommand.GETJOB: {
-							ByteDatas[] jobDatas = null;
-							{
-								// *
-								var lineEndCursor = ReadLine(sourceBuffer, cursor);
-								cursor = cursor + 1;// add header byte size = 1.
-								
-								var bulkCountStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-								var bulkCountNum = Convert.ToInt32(bulkCountStr);
-								// TestLogger.Log("bulkCountNum:" + bulkCountNum);
-								cursor = lineEndCursor + 2;// CR + LF
-								
-								jobDatas = new ByteDatas[bulkCountNum];
-								
-								for (var i = 0; i < bulkCountNum; i++) {
-									{
-										// *
-										var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
-										cursor = cursor + 1;// add header byte size = 1.
+						case DisqueCommand.INFO: {
+							switch (sourceBuffer[cursor]) {
+								case ByteBulk: {
+									// $
+									var lineEndCursor = ReadLine(sourceBuffer, cursor);
+									cursor = cursor + 1;// add header byte size = 1.
+									
+									var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+									var countNum = Convert.ToInt32(countStr);
+									
+									cursor = lineEndCursor + 2;// CR + LF
+									
+									if (Received != null) {
+										// var dataStr = enc.GetString(sourceBuffer, cursor, countNum);
+										// TestLogger.Log("dataStr:" + dataStr);
 										
-										var bulkCountStr2 = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
-										var bulkCountNum2 = Convert.ToInt32(bulkCountStr2);
-										// TestLogger.Log("bulkCountNum2:" + bulkCountNum2);
-										cursor = lineEndCursor2 + 2;// CR + LF
+										var newBuffer = new byte[countNum];
+										Array.Copy(sourceBuffer, cursor, newBuffer, 0, countNum);
+										
+										Received(currentCommand, new ByteDatas[]{new ByteDatas(newBuffer)});
 									}
 									
-									// queueName
-									{
-										// $
-										var lineEndCursor3 = ReadLine(sourceBuffer, cursor);
-										cursor = cursor + 1;// add header byte size = 1.
-										
-										var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
-										var strNum = Convert.ToInt32(countStr);
-										// TestLogger.Log("id strNum:" + strNum);
-										
-										cursor = lineEndCursor3 + 2;// CR + LF
-										
-										var nameStr = enc.GetString(sourceBuffer, cursor, strNum);
-										// TestLogger.Log("nameStr:" + nameStr);
-										
-										cursor = cursor + strNum + 2;// CR + LF
-									}
-									
-									var jobIdIndex = 0;
-									var jobIdLength = 0;
-									
-									// jobId
-									{
-										// $
-										var lineEndCursor3 = ReadLine(sourceBuffer, cursor);
-										cursor = cursor + 1;// add header byte size = 1.
-										
-										var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
-										var strNum = Convert.ToInt32(countStr);
-										// TestLogger.Log("id strNum:" + strNum);
-										
-										cursor = lineEndCursor3 + 2;// CR + LF
-										
-										jobIdIndex = cursor;
-										jobIdLength = strNum;
-										// var jobIdSrt = enc.GetString(sourceBuffer, cursor, strNum);
-										// TestLogger.Log("jobIdSrt:" + jobIdSrt);
-										
-										cursor = cursor + strNum + 2;// CR + LF
-									}
-									
-									// jobData
-									{
-										// $
-										var lineEndCursor3 = ReadLine(sourceBuffer, cursor);
-										cursor = cursor + 1;// add header byte size = 1.
-										
-										var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
-										var strNum = Convert.ToInt32(countStr);
-										// TestLogger.Log("data strNum:" + strNum);
-										
-										cursor = lineEndCursor3 + 2;// CR + LF
-										
-										var jobIdBytes = new byte[jobIdLength];
-										Array.Copy(sourceBuffer, jobIdIndex, jobIdBytes, 0, jobIdLength);
-										
-										var dataBytes = new byte[strNum];
-										Array.Copy(sourceBuffer, cursor, dataBytes, 0, strNum);
-										
-										jobDatas[i] = new ByteDatas(jobIdBytes, dataBytes);
-										
-										cursor = cursor + strNum + 2;// CR + LF
-									}	
+									cursor = cursor + countNum + 2;// CR + LF
+									break;
 								}
-							}
-							
-							if (Received != null) {
-								if (jobDatas != null) {
-									if (0 < jobDatas.Length) {
-										Received(currentCommand, jobDatas);
-									} 	
+								default: {
+									TestLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor]);
+									cursor = bytesTransferred;
+									break;
 								}
 							}
 							break;
 						}
-						case DisqueCommand.ACKJOB:
-						case DisqueCommand.FASTACK: {
-							{
-								// :Identity count
-								var lineEndCursor = ReadLine(sourceBuffer, cursor);
-								cursor = cursor + 1;// add header byte size = 1.
-								
-								if (Received != null) { 	
-									// var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-									// var countNum = Convert.ToInt32(countStr);
-									// TestLogger.Log("countNum:" + countNum);
+						case DisqueCommand.HELLO: {
+							switch (sourceBuffer[cursor]) {
+								case ByteMultiBulk: {
+									string version;
+									string thisNodeId;
+									List<string> nodeIdsAndInfos = new List<string>();
+									/*
+										:*3
+											:1 version [0][0]
+											
+											$40 this node ID [0][1]
+												002698920b158ba29ff8d41d3e5303ceaf0e8d45
+											
+											*4 [1~n][0~3]
+												$40
+													002698920b158ba29ff8d41d3e5303ceaf0e8d45
+												
+												$0
+													""
+												
+												$4
+													7711
+												
+												$1
+													1
+									*/
+									
+									{
+										// *
+										var lineEndCursor = ReadLine(sourceBuffer, cursor);
+										cursor = cursor + 1;// add header byte size = 1.
+										
+										var bulkCountStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+										var bulkCountNum = Convert.ToInt32(bulkCountStr);
+										// TestLogger.Log("bulkCountNum:" + bulkCountNum);
+										cursor = lineEndCursor + 2;// CR + LF
+									}
+									
+									{
+										// : format version
+										var lineEndCursor = ReadLine(sourceBuffer, cursor);
+										cursor = cursor + 1;// add header byte size = 1.
+										
+										version = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+										// var countNum = Convert.ToInt32(countStr);
+										// TestLogger.Log(":countNum:" + countNum);
+										cursor = lineEndCursor + 2;// CR + LF
+									}
+									
+									{
+										// $ this node id
+										var lineEndCursor = ReadLine(sourceBuffer, cursor);
+										cursor = cursor + 1;// add header byte size = 1.
+										
+										var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+										var strNum = Convert.ToInt32(countStr);
+										// TestLogger.Log("id strNum:" + strNum);
+										
+										cursor = lineEndCursor + 2;// CR + LF
+										
+										thisNodeId = enc.GetString(sourceBuffer, cursor, strNum);
+										// TestLogger.Log("idStr:" + idStr);
+										
+										cursor = cursor + strNum + 2;// CR + LF
+									}
+									
+									{
+										// * node ids
+										var lineEndCursor = ReadLine(sourceBuffer, cursor);
+										cursor = cursor + 1;// add header byte size = 1.
+										
+										var bulkCountStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+										var bulkCountNum = Convert.ToInt32(bulkCountStr);
+										// TestLogger.Log("bulkCountNum:" + bulkCountNum);
+										
+										cursor = lineEndCursor + 2;// CR + LF
+										
+										// nodeId, ip, port, priority.
+										for (var i = 0; i < bulkCountNum/4; i++) {
+											var idStr = string.Empty;
+											
+											// $ nodeId
+											{
+												var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
+												cursor = cursor + 1;// add header byte size = 1.
+												
+												var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
+												var strNum = Convert.ToInt32(countStr);
+												
+												cursor = lineEndCursor2 + 2;// CR + LF
+												
+												idStr = enc.GetString(sourceBuffer, cursor, strNum);
+												nodeIdsAndInfos.Add(idStr);
+												
+												cursor = cursor + strNum + 2;// CR + LF
+											}
+											
+											{
+												var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
+												cursor = cursor + 1;// add header byte size = 1.
+												
+												var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
+												var strNum = Convert.ToInt32(countStr);
+												
+												cursor = lineEndCursor2 + 2;// CR + LF
+												
+												var ipStr = enc.GetString(sourceBuffer, cursor, strNum);
+												nodeIdsAndInfos.Add(ipStr);
+												
+												cursor = cursor + strNum + 2;// CR + LF
+											}
+											
+											{
+												var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
+												cursor = cursor + 1;// add header byte size = 1.
+												
+												var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
+												var strNum = Convert.ToInt32(countStr);
+												
+												cursor = lineEndCursor2 + 2;// CR + LF
+												
+												var portStr = enc.GetString(sourceBuffer, cursor, strNum);
+												nodeIdsAndInfos.Add(portStr);
+												
+												cursor = cursor + strNum + 2;// CR + LF
+											}
+											
+											{
+												var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
+												cursor = cursor + 1;// add header byte size = 1.
+												
+												var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
+												var strNum = Convert.ToInt32(countStr);
+												
+												cursor = lineEndCursor2 + 2;// CR + LF
+												
+												var priorityStr = enc.GetString(sourceBuffer, cursor, strNum);
+												nodeIdsAndInfos.Add(priorityStr);
+												
+												cursor = cursor + strNum + 2;// CR + LF
+											}
+										}
+									}
+									
+									if (Received != null) {
+										var versionBytes = enc.GetBytes(version);
+										var thisNodeIdBytes = enc.GetBytes(thisNodeId);
+										
+										var byteDatas = new ByteDatas[1 + nodeIdsAndInfos.Count/4];
+										byteDatas[0] = new ByteDatas(versionBytes,thisNodeIdBytes);
+										
+										for (var index = 0; index < nodeIdsAndInfos.Count/4; index++) {
+											var nodeId = enc.GetBytes(nodeIdsAndInfos[index*4 + 0]);
+											var ip = enc.GetBytes(nodeIdsAndInfos[index*4 + 1]);
+											var port = enc.GetBytes(nodeIdsAndInfos[index*4 + 2]);
+											var priority = enc.GetBytes(nodeIdsAndInfos[index*4 + 3]);
+											
+											byteDatas[index + 1] = new ByteDatas(nodeId, ip, port, priority);
+										}
+										Received(currentCommand, byteDatas);
+									}
+									break;
+								}
+								default: {
+									TestLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor]);
+									cursor = bytesTransferred;
+									break;
+								}
+							}
+							break;
+						}
+						case DisqueCommand.QLEN: {
+							switch (sourceBuffer[cursor]) {
+								case ByteInt: {
+									// : format version
+									var lineEndCursor = ReadLine(sourceBuffer, cursor);
+									cursor = cursor + 1;// add header byte size = 1.
 									
 									var countBuffer = new byte[lineEndCursor - cursor];
 									Array.Copy(sourceBuffer, cursor, countBuffer, 0, countBuffer.Length);
 									
 									var byteData = new ByteDatas(countBuffer);
 									
-									Received(currentCommand, new ByteDatas[]{byteData});
+									if (Received != null) {
+										Received(currentCommand, new ByteDatas[]{byteData});
+									}
+									
+									cursor = lineEndCursor + 2;// CR + LF
+									break;
 								}
-								
-								cursor = lineEndCursor + 2;// CR + LF
-							}
-							break;
-						}
-						case DisqueCommand.WORKING: {
-							TestLogger.LogError("not yet applied:" + currentCommand);
-							cursor = bytesTransferred;
-							break;
-						}
-						case DisqueCommand.NACK: {
-							TestLogger.LogError("not yet applied:" + currentCommand);
-							cursor = bytesTransferred;
-							break;
-						}
-						case DisqueCommand.INFO: {
-							// $
-							var lineEndCursor = ReadLine(sourceBuffer, cursor);
-							cursor = cursor + 1;// add header byte size = 1.
-							
-							var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-							var countNum = Convert.ToInt32(countStr);
-							
-							cursor = lineEndCursor + 2;// CR + LF
-							
-							if (Received != null) {
-								// var dataStr = enc.GetString(sourceBuffer, cursor, countNum);
-								// TestLogger.Log("dataStr:" + dataStr);
-								
-								var newBuffer = new byte[countNum];
-								Array.Copy(sourceBuffer, cursor, newBuffer, 0, countNum);
-								
-								Received(currentCommand, new ByteDatas[]{new ByteDatas(newBuffer)});
-							}
-							
-							cursor = cursor + countNum + 2;// CR + LF
-							break;
-						}
-						case DisqueCommand.HELLO: {
-							string version;
-							string thisNodeId;
-							List<string> nodeIdsAndInfos = new List<string>();
-							/*
-								:*3
-									:1 version [0][0]
-									
-									$40 this node ID [0][1]
-										002698920b158ba29ff8d41d3e5303ceaf0e8d45
-									
-									*4 [1~n][0~3]
-										$40
-											002698920b158ba29ff8d41d3e5303ceaf0e8d45
-										
-										$0
-											""
-										
-										$4
-											7711
-										
-										$1
-											1
-							*/
-							
-							{
-								// *
-								var lineEndCursor = ReadLine(sourceBuffer, cursor);
-								cursor = cursor + 1;// add header byte size = 1.
-								
-								var bulkCountStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-								var bulkCountNum = Convert.ToInt32(bulkCountStr);
-								// TestLogger.Log("bulkCountNum:" + bulkCountNum);
-								cursor = lineEndCursor + 2;// CR + LF
-							}
-							
-							{
-								// : format version
-								var lineEndCursor = ReadLine(sourceBuffer, cursor);
-								cursor = cursor + 1;// add header byte size = 1.
-								
-								version = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-								// var countNum = Convert.ToInt32(countStr);
-								// TestLogger.Log(":countNum:" + countNum);
-								cursor = lineEndCursor + 2;// CR + LF
-							}
-							
-							{
-								// $ this node id
-								var lineEndCursor = ReadLine(sourceBuffer, cursor);
-								cursor = cursor + 1;// add header byte size = 1.
-								
-								var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-								var strNum = Convert.ToInt32(countStr);
-								// TestLogger.Log("id strNum:" + strNum);
-								
-								cursor = lineEndCursor + 2;// CR + LF
-								
-								thisNodeId = enc.GetString(sourceBuffer, cursor, strNum);
-								// TestLogger.Log("idStr:" + idStr);
-								
-								cursor = cursor + strNum + 2;// CR + LF
-							}
-							
-							{
-								// * node ids
-								var lineEndCursor = ReadLine(sourceBuffer, cursor);
-								cursor = cursor + 1;// add header byte size = 1.
-								
-								var bulkCountStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-								var bulkCountNum = Convert.ToInt32(bulkCountStr);
-								// TestLogger.Log("bulkCountNum:" + bulkCountNum);
-								
-								cursor = lineEndCursor + 2;// CR + LF
-								
-								// nodeId, ip, port, priority.
-								for (var i = 0; i < bulkCountNum/4; i++) {
-									var idStr = string.Empty;
-									
-									// $ nodeId
-									{
-										var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
-										cursor = cursor + 1;// add header byte size = 1.
-										
-										var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
-										var strNum = Convert.ToInt32(countStr);
-										
-										cursor = lineEndCursor2 + 2;// CR + LF
-										
-										idStr = enc.GetString(sourceBuffer, cursor, strNum);
-										nodeIdsAndInfos.Add(idStr);
-										
-										cursor = cursor + strNum + 2;// CR + LF
-									}
-									
-									{
-										var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
-										cursor = cursor + 1;// add header byte size = 1.
-										
-										var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
-										var strNum = Convert.ToInt32(countStr);
-										
-										cursor = lineEndCursor2 + 2;// CR + LF
-										
-										var ipStr = enc.GetString(sourceBuffer, cursor, strNum);
-										nodeIdsAndInfos.Add(ipStr);
-										
-										cursor = cursor + strNum + 2;// CR + LF
-									}
-									
-									{
-										var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
-										cursor = cursor + 1;// add header byte size = 1.
-										
-										var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
-										var strNum = Convert.ToInt32(countStr);
-										
-										cursor = lineEndCursor2 + 2;// CR + LF
-										
-										var portStr = enc.GetString(sourceBuffer, cursor, strNum);
-										nodeIdsAndInfos.Add(portStr);
-										
-										cursor = cursor + strNum + 2;// CR + LF
-									}
-									
-									{
-										var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
-										cursor = cursor + 1;// add header byte size = 1.
-										
-										var countStr = enc.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
-										var strNum = Convert.ToInt32(countStr);
-										
-										cursor = lineEndCursor2 + 2;// CR + LF
-										
-										var priorityStr = enc.GetString(sourceBuffer, cursor, strNum);
-										nodeIdsAndInfos.Add(priorityStr);
-										
-										cursor = cursor + strNum + 2;// CR + LF
-									}
+								default: {
+									TestLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor]);
+									cursor = bytesTransferred;
+									break;
 								}
 							}
-							
-							if (Received != null) {
-								var versionBytes = enc.GetBytes(version);
-								var thisNodeIdBytes = enc.GetBytes(thisNodeId);
-								
-								var byteDatas = new ByteDatas[1 + nodeIdsAndInfos.Count/4];
-								byteDatas[0] = new ByteDatas(versionBytes,thisNodeIdBytes);
-								
-								for (var index = 0; index < nodeIdsAndInfos.Count/4; index++) {
-									var nodeId = enc.GetBytes(nodeIdsAndInfos[index*4 + 0]);
-									var ip = enc.GetBytes(nodeIdsAndInfos[index*4 + 1]);
-									var port = enc.GetBytes(nodeIdsAndInfos[index*4 + 2]);
-									var priority = enc.GetBytes(nodeIdsAndInfos[index*4 + 3]);
-									
-									byteDatas[index + 1] = new ByteDatas(nodeId, ip, port, priority);
-								}
-								Received(currentCommand, byteDatas);
-							}
-							break;
-						}
-						case DisqueCommand.QLEN: {
-							TestLogger.LogError("not yet applied:" + currentCommand);
-							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.QSTAT: {
-							TestLogger.LogError("not yet applied:" + currentCommand);
+							var data = enc.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
+							TestLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.QPEEK: {
-							TestLogger.LogError("not yet applied:" + currentCommand);
+							var data = enc.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
+							TestLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.ENQUEUE: {
-							TestLogger.LogError("not yet applied:" + currentCommand);
+							var data = enc.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
+							TestLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.DEQUEUE: {
-							TestLogger.LogError("not yet applied:" + currentCommand);
+							var data = enc.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
+							TestLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.DELJOB: {
-							TestLogger.LogError("not yet applied:" + currentCommand);
+							var data = enc.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
+							TestLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.SHOW: {
-							TestLogger.LogError("not yet applied:" + currentCommand);
+							var data = enc.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
+							TestLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.QSCAN: {
-							TestLogger.LogError("not yet applied:" + currentCommand);
+							var data = enc.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
+							TestLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.JSCAN: {
-							TestLogger.LogError("not yet applied:" + currentCommand);
+							var data = enc.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
+							TestLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.PAUSE: {
-							TestLogger.LogError("not yet applied:" + currentCommand);
+							var data = enc.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
+							TestLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
@@ -736,7 +889,12 @@ namespace DisquuunCore {
 			// [REPLICATE <count>] [DELAY <sec>] [RETRY <sec>] [TTL <sec>] [MAXLEN <count>] [ASYNC]
 			
 			// byteをそのまま送りたいんだが、っていうやつ。byteArrayをそのままではうまく変形できない。
+			// あと、いろいろ配列で渡さないといけないんだけど、それも辛い。
+			// この段階で
 			var dataStr = enc.GetString(data);
+			// var newArgs = new object[1 + args.Length];
+			// newArgs[0] = timeout;
+			// for (var i = 1; i < newArgs.Length; i++) newArgs[i] = args[i-1];
 			SendBytes(DisqueCommand.ADDJOB, queueName, dataStr, timeout);
 		}
 		
@@ -770,10 +928,12 @@ namespace DisquuunCore {
 
 		public void Working (string jobId) {
 			// jobid
+			SendBytes(DisqueCommand.WORKING, jobId);
 		}
 
-		public void Nack (params string[] jobIds) {
-			// <job-id> ... <job-id>	
+		public void Nack (string[] jobIds) {
+			// <job-id> ... <job-id>
+			SendBytes(DisqueCommand.NACK, jobIds);
 		}
 		
 		public void Info () {
@@ -784,8 +944,12 @@ namespace DisquuunCore {
 			SendBytes(DisqueCommand.HELLO);
 		}
 		
+		public void Qlen (string queueId) {
+			// QLEN,// <queue-name>
+			SendBytes(DisqueCommand.QLEN, queueId);
+		}
+		
 		/*
-			QLEN,// <queue-name>
 			QSTAT,// <queue-name>
 			QPEEK,// <queue-name> <count>
 			ENQUEUE,// <job-id> ... <job-id>
@@ -802,7 +966,6 @@ namespace DisquuunCore {
 			API core
 		*/
 		private void SendBytes (DisqueCommand commandEnum, params object[] args) {
-			TestLogger.Log("commandEnum:" + commandEnum);
 			int length = 1 + args.Length;
 			
 			var command = commandEnum.ToString();
@@ -827,6 +990,7 @@ namespace DisquuunCore {
 			}
 			// TestLogger.Log("strCommand:" + strCommand);
 			
+			// 結局byteに変換してるんだよな。
 			byte[] bytes = enc.GetBytes(strCommand.ToCharArray());
 			
 			socketToken.stack.Enqueue(commandEnum);

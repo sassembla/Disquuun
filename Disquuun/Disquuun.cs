@@ -291,7 +291,7 @@ namespace DisquuunCore {
 					
 					// データの先頭しか受け取れないケースとかがありそうな気がする、発生を検知したい。バッファサイズ小さくして試すか。
 					if (sourceBuffer.Length - 1 <= bytesTransferred) {
-						TestLogger.Log("too much size data comming. んでどうなるんだろう。");
+						TestLogger.Log("too much size data comming. んでどうなるんだろう。 bytesTransferred:" + bytesTransferred + " vs sourceBuffer.Length:" + sourceBuffer.Length);
 					}
 					
 					/*
@@ -305,7 +305,7 @@ namespace DisquuunCore {
 									var lineEndCursor = ReadLine(sourceBuffer, cursor);
 									cursor = cursor + 1;// add header byte size = 1.
 									
-									if (Received != null) {
+									if (Failed != null) {
 										var errorStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
 										// TestLogger.Log("errorStr:" + errorStr);
 										Failed(currentCommand, errorStr);
@@ -512,7 +512,7 @@ namespace DisquuunCore {
 									var lineEndCursor = ReadLine(sourceBuffer, cursor);
 									cursor = cursor + 1;// add header byte size = 1.
 									
-									if (Received != null) {
+									if (Failed != null) {
 										var errorStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
 										// TestLogger.Log("errorStr:" + errorStr);
 										Failed(currentCommand, errorStr);
@@ -527,7 +527,6 @@ namespace DisquuunCore {
 									break;
 								}
 							}
-							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.NACK: {
@@ -558,7 +557,7 @@ namespace DisquuunCore {
 									var lineEndCursor = ReadLine(sourceBuffer, cursor);
 									cursor = cursor + 1;// add header byte size = 1.
 									
-									if (Received != null) {
+									if (Failed != null) {
 										var errorStr = enc.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
 										// TestLogger.Log("errorStr:" + errorStr);
 										Failed(currentCommand, errorStr);
@@ -912,6 +911,9 @@ namespace DisquuunCore {
 					continue;
 				}
 				parameters[i] = queueIds[i - (args.Length + 1)];
+			}
+			foreach (var i in parameters) {
+				TestLogger.Log("i:" + i);
 			}
 			SendBytes(DisqueCommand.GETJOB, parameters);
 		}

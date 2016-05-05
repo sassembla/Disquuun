@@ -1,20 +1,25 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 public class DisquuunTests {
-
+	public static List<TestBase> tests;
+	
     public static void RunDisquuunTests () {
+		tests = new List<TestBase>();
 		var testLogger = new TestLogger();
-		try {
-			// run parallel.
-			// new Test1_AllAPIs();
-			new Test2_Fast();
-			
-			// new Test2_Fast();
-			// new Test2_Fast();
-			
-		} catch (Exception e) {
-			testLogger.Log("e:" + e);	
+		
+		
+		tests.Add(new Test1_AllAPIs());
+		// new Test2_Fast();
+		// tests.Add(new Test3_Size());
+	}
+	
+	
+	public static void StopTests () {
+		if (tests == null) return; 
+		foreach (var test in tests) {
+			test.Quit();
 		}
 	}
 }
@@ -22,7 +27,7 @@ public class DisquuunTests {
 public class TestLogger {
 	private const string logPath = "test.log";
 	
-	public void Log (string message) {
+	public static void Log (string message) {
 		WriteLog(message);
 	}
 	
@@ -35,7 +40,7 @@ public class TestLogger {
 		WriteLog("stacktrace:" + Environment.StackTrace);
 	}
 	
-	public void WriteLog (string message) {
+	public static void WriteLog (string message) {
 
 		// file write
 		using (var fs = new FileStream(

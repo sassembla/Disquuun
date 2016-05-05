@@ -14,9 +14,20 @@ namespace DisquuunCore.Deserialize {
 		public struct JobData {
 			public readonly string jobId;
 			public readonly byte[] jobData;
+			
+			public readonly int nackCount;
+			public readonly int additionalDeliveriesCount;
+			
 			public JobData (Disquuun.ByteDatas dataSourceBytes) {
 				this.jobId = Encoding.UTF8.GetString(dataSourceBytes.bytesArray[0]);
 				this.jobData = dataSourceBytes.bytesArray[1];
+				if (dataSourceBytes.bytesArray.Length < 3) {
+					nackCount = -1;
+					additionalDeliveriesCount = -1;
+				} else {// with "withcounters" option
+					nackCount = Convert.ToInt32(Encoding.UTF8.GetString(dataSourceBytes.bytesArray[2]));
+					additionalDeliveriesCount = Convert.ToInt32(Encoding.UTF8.GetString(dataSourceBytes.bytesArray[3]));
+				}
 			}
 		}
 		

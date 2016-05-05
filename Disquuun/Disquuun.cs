@@ -1,16 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace DisquuunCore {
-	public class Disquuun {
-		private TestLogger testLogger;
-		
+    public class Disquuun {
 		public readonly string connectionId;
 		
 		private readonly Action<string> Connected;
@@ -18,6 +14,8 @@ namespace DisquuunCore {
 		private readonly Action<DisqueCommand, string> Failed;
 		private readonly Action<Exception> Error;
 		private readonly Action<string> Closed;
+		
+		public readonly long BufferSize;
 		
 		public enum ConnectionState {
 			OPENING,
@@ -60,8 +58,6 @@ namespace DisquuunCore {
 			
 			public Queue<DisqueCommand> stack;
 			
-			public DisqueFilter filter;
-			
 			public SocketToken (Socket socket, SocketAsyncEventArgs connectArgs, SocketAsyncEventArgs sendArgs, SocketAsyncEventArgs receiveArgs) {
 				this.state = ConnectionState.OPENING;
 				this.socket = socket;
@@ -71,14 +67,12 @@ namespace DisquuunCore {
 				this.receiveArgs = receiveArgs;
 				
 				this.stack = new Queue<DisqueCommand>();
-				this.filter = new DisqueFilter();
 				 
 				this.connectArgs.UserToken = this;
 				this.sendArgs.UserToken = this;
 				this.receiveArgs.UserToken = this;
 			}
 		}
-		
 		
 		public Disquuun (
 			string connectionId,
@@ -91,8 +85,9 @@ namespace DisquuunCore {
 			Action<Exception> Error=null,
 			Action<string> Closed=null
 		) {
-			testLogger = new TestLogger();
 			this.connectionId = connectionId;
+			
+			this.BufferSize = bufferSize;
 			
 			this.Connected = Connected;
 			this.Received = Received;
@@ -115,8 +110,8 @@ namespace DisquuunCore {
 				sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
 				
 				var receiveArgs = new SocketAsyncEventArgs();
-				byte[] receiveBuffer2 = new byte[bufferSize];
-				receiveArgs.SetBuffer(receiveBuffer2, 0, receiveBuffer2.Length);
+				byte[] receiveBuffer = new byte[bufferSize];
+				receiveArgs.SetBuffer(receiveBuffer, 0, receiveBuffer.Length);
 				receiveArgs.AcceptSocket = clientSocket;
 				receiveArgs.RemoteEndPoint = endPoint;
 				receiveArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnReceived);
@@ -190,11 +185,8 @@ namespace DisquuunCore {
 		}
 		
 		private void OnReceived (object unused, SocketAsyncEventArgs args) {
+		
 			var token = (SocketToken)args.UserToken;
-			
-			// in Disque, 1 receive per 1 send at least.
-			var command = token.stack.Dequeue();
-			
 			if (args.SocketError != SocketError.Success) { 
 				switch (token.state) {
 					case ConnectionState.CLOSING:
@@ -204,8 +196,11 @@ namespace DisquuunCore {
 					}
 					default: {
 						// show error, then close or continue receiving.
-						var error = new Exception("receive error:" + args.SocketError.ToString());
-						if (Error != null) Error(error);
+						
+						if (Error != null) {
+							var error = new Exception("receive error:" + args.SocketError.ToString() + " size:" + args.BytesTransferred);
+							Error(error);
+						}
 						
 						// connection is already closed.
 						if (!IsSocketConnected(token.socket)) {
@@ -220,20 +215,28 @@ namespace DisquuunCore {
 			}
 			
 			if (0 < args.BytesTransferred) {
-				// testLogger.Log("message receive start:" + command);
-				// ここで複数件受け取る可能性がある。
-				// で、あれば、delimiterとかがここに入ってくる。データが切れることはあるのかな、、バッファオーバーしたらぶっちぎれるんだよな、、そのへんまずやってみるか。
-				// あと、サイズが0で帰ってくることがあるんかな、、
-				
-				// testLogger.Log("複数件突っ込まれるのでは = データが複数入るのでは、、？ YES。 途中でちぎれるのでは、、? <- わからん、、");
-				// testLogger.Log("データのもち越しどうなるんだろう");
-				
-				var cursor = token.filter.Evaluate(command, token.stack, args.BytesTransferred, args.Buffer, Received, Failed);
-				if (cursor != args.BytesTransferred) testLogger.Log("command:" + command + " args.BytesTransferred:" + args.BytesTransferred + " vs cursor:" + cursor);
+				if (0 < token.stack.Count) { 
+					var dataSource = args.Buffer;
+					var bytesAmount = args.BytesTransferred;
+					
+					var rest = args.AcceptSocket.Available;
+					if (0 < rest) {
+						var restBuffer = new byte[rest];
+						var additionalReadResult = token.socket.Receive(restBuffer, SocketFlags.None);
+						
+						var baseLength = dataSource.Length;
+						Array.Resize(ref dataSource, baseLength + rest);
+						
+						for (var i = 0; i < rest; i++) dataSource[baseLength + i] = restBuffer[i];
+						bytesAmount = dataSource.Length;
+					}
+					
+					DisqueFilter.Evaluate(token.stack, bytesAmount, dataSource, Received, Failed);
+				}
 			}
 			
 			// continue to receive.
-			token.socket.ReceiveAsync(args);
+			if (!token.socket.ReceiveAsync(args)) OnReceived(null, args);
 		}
 		
 		
@@ -274,30 +277,19 @@ namespace DisquuunCore {
 		/*
 			transform disque result to byte datas. 
 		*/
-		public class DisqueFilter {
-			private TestLogger testLogger;
+		public static class DisqueFilter {
 			
-			public DisqueFilter () {
-				testLogger = new TestLogger();
-			}
-			
-			public int Evaluate(DisqueCommand currentCommand, Queue<DisqueCommand> commands, int bytesTransferred, byte[] sourceBuffer, Action<DisqueCommand, ByteDatas[]> Received, Action<DisqueCommand, string> Failed) {
+			public static void Evaluate (Queue<DisqueCommand> commands, int bytesTransferred, byte[] sourceBuffer, Action<DisqueCommand, ByteDatas[]> Received, Action<DisqueCommand, string> Failed) {
 				int cursor = 0;
 				
 				while (cursor < bytesTransferred) {
-					if (0 < cursor && 0 < commands.Count) {
-						// 全データの解析が終わっていない状態、持ちかた変えたほうがいいのかな〜〜
-						// testLogger.Log("before:" + currentCommand);
-						currentCommand = commands.Dequeue();
-						// testLogger.Log("after:" + currentCommand);
-					}
+					if (commands.Count == 0) {
+						// shortage of command. 
+						break;
+					} 
+					var currentCommand = commands.Dequeue();
 					
-					// testLogger.Log("receiving currentCommand:" + currentCommand);
-					
-					// データの先頭しか受け取れないケースとかがありそうな気がする、発生を検知したい。バッファサイズ小さくして試すか。
-					if (sourceBuffer.Length - 1 <= bytesTransferred) {
-						testLogger.Log("too much size data comming. んでどうなるんだろう。 bytesTransferred:" + bytesTransferred + " vs sourceBuffer.Length:" + sourceBuffer.Length);
-					}
+					// Log("receiving currentCommand:" + currentCommand);
 					
 					/*
 						get data then react.
@@ -313,7 +305,7 @@ namespace DisquuunCore {
 									
 									if (Failed != null) {
 										var errorStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-										// testLogger.Log("errorStr:" + errorStr);
+										// Log("errorStr:" + errorStr);
 										Failed(currentCommand, errorStr);
 									}
 									
@@ -326,9 +318,8 @@ namespace DisquuunCore {
 									cursor = cursor + 1;// add header byte size = 1.
 									
 									if (Received != null) {
-										// var idStrBytes = new byte[lineEndCursor - cursor];
 										// var idStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-										// testLogger.Log("idStr:" + idStr);
+										// Log("idStr:" + idStr);
 										
 										var countBuffer = new byte[lineEndCursor - cursor];
 										Array.Copy(sourceBuffer, cursor, countBuffer, 0, lineEndCursor - cursor);
@@ -340,7 +331,7 @@ namespace DisquuunCore {
 									break;
 								}
 								default: {
-									testLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
+									Log("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
 									cursor = bytesTransferred;
 									break;
 								}
@@ -348,9 +339,9 @@ namespace DisquuunCore {
 							break;
 						}
 						case DisqueCommand.GETJOB: {
-							ByteDatas[] jobDatas = null;
 							switch (sourceBuffer[cursor]) {
 								case ByteMultiBulk: {
+									ByteDatas[] jobDatas = null;
 									{
 										// *
 										var lineEndCursor = ReadLine(sourceBuffer, cursor);
@@ -358,20 +349,30 @@ namespace DisquuunCore {
 										
 										var bulkCountStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
 										var bulkCountNum = Convert.ToInt32(bulkCountStr);
-										// testLogger.Log("bulkCountNum:" + bulkCountNum);
+										
+										// Log("bulkCountNum:" + bulkCountNum);
 										cursor = lineEndCursor + 2;// CR + LF
 										
-										jobDatas = new ByteDatas[bulkCountNum];
+										if (bulkCountNum < 0) {// trigger when GETJOB NOHANG
+											if (Received != null) {
+												Received(currentCommand, new ByteDatas[]{});
+											}
+											break;
+										}
 										
+										jobDatas = new ByteDatas[bulkCountNum];
 										for (var i = 0; i < bulkCountNum; i++) {
+											var itemCount = 0;
 											{
 												// *
 												var lineEndCursor2 = ReadLine(sourceBuffer, cursor);
 												cursor = cursor + 1;// add header byte size = 1.
 												
 												var bulkCountStr2 = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
-												var bulkCountNum2 = Convert.ToInt32(bulkCountStr2);
-												// testLogger.Log("bulkCountNum2:" + bulkCountNum2);
+												itemCount = Convert.ToInt32(bulkCountStr2);
+												
+												// Log("itemCount:" + itemCount);
+												
 												cursor = lineEndCursor2 + 2;// CR + LF
 											}
 											
@@ -383,12 +384,12 @@ namespace DisquuunCore {
 												
 												var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
 												var strNum = Convert.ToInt32(countStr);
-												// testLogger.Log("id strNum:" + strNum);
+												// Log("id strNum:" + strNum);
 												
 												cursor = lineEndCursor3 + 2;// CR + LF
 												
-												var nameStr = Encoding.UTF8.GetString(sourceBuffer, cursor, strNum);
-												// testLogger.Log("nameStr:" + nameStr);
+												// var nameStr = Encoding.UTF8.GetString(sourceBuffer, cursor, strNum);
+												// Log("nameStr:" + nameStr);
 												
 												cursor = cursor + strNum + 2;// CR + LF
 											}
@@ -404,19 +405,22 @@ namespace DisquuunCore {
 												
 												var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
 												var strNum = Convert.ToInt32(countStr);
-												// testLogger.Log("id strNum:" + strNum);
+												// Log("id strNum:" + strNum);
 												
 												cursor = lineEndCursor3 + 2;// CR + LF
 												
 												jobIdIndex = cursor;
 												jobIdLength = strNum;
-												// var jobIdSrt = Encoding.UTF8.GetString(sourceBuffer, cursor, strNum);
-												// testLogger.Log("jobIdSrt:" + jobIdSrt);
+												
+												// var jobIdStr = Encoding.UTF8.GetString(sourceBuffer, cursor, strNum);
+												// Log("jobIdStr:" + jobIdStr);
 												
 												cursor = cursor + strNum + 2;// CR + LF
 											}
 											
 											// jobData
+											byte[] jobIdBytes;
+											byte[] dataBytes;
 											{
 												// $
 												var lineEndCursor3 = ReadLine(sourceBuffer, cursor);
@@ -424,20 +428,80 @@ namespace DisquuunCore {
 												
 												var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
 												var strNum = Convert.ToInt32(countStr);
-												// testLogger.Log("data strNum:" + strNum);
+												// Log("data strNum:" + strNum);
 												
 												cursor = lineEndCursor3 + 2;// CR + LF
 												
-												var jobIdBytes = new byte[jobIdLength];
+												jobIdBytes = new byte[jobIdLength];
 												Array.Copy(sourceBuffer, jobIdIndex, jobIdBytes, 0, jobIdLength);
 												
-												var dataBytes = new byte[strNum];
+												dataBytes = new byte[strNum];
 												Array.Copy(sourceBuffer, cursor, dataBytes, 0, strNum);
 												
-												jobDatas[i] = new ByteDatas(jobIdBytes, dataBytes);
-												
 												cursor = cursor + strNum + 2;// CR + LF
-											}	
+											}
+											
+											if (itemCount == 3) {
+												jobDatas[i] = new ByteDatas(jobIdBytes, dataBytes);
+												continue;
+											}
+											
+											
+											if (itemCount == 7) {
+												byte[] nackCountBytes;
+												{
+													// $
+													var lineEndCursor3 = ReadLine(sourceBuffer, cursor);
+													cursor = cursor + 1;// add header byte size = 1.
+													
+													var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
+													var strNum = Convert.ToInt32(countStr);
+													// Log("data strNum:" + strNum);
+													
+													cursor = lineEndCursor3 + 2;// CR + LF
+													
+													// ignore params. 
+												
+													cursor = cursor + strNum + 2;// CR + LF
+												
+													// :
+													var lineEndCursor4 = ReadLine(sourceBuffer, cursor);
+													cursor = cursor + 1;// add header byte size = 1.
+													
+													nackCountBytes = new byte[lineEndCursor4 - cursor];
+													Array.Copy(sourceBuffer, cursor, nackCountBytes, 0, nackCountBytes.Length);
+													
+													cursor = lineEndCursor4 + 2;// CR + LF
+												}
+												
+												byte[] additionalDeliveriesCountBytes;
+												{
+													// $
+													var lineEndCursor3 = ReadLine(sourceBuffer, cursor);
+													cursor = cursor + 1;// add header byte size = 1.
+													
+													var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
+													var strNum = Convert.ToInt32(countStr);
+													// Log("data strNum:" + strNum);
+													
+													cursor = lineEndCursor3 + 2;// CR + LF
+													
+													// ignore params. 
+												
+													cursor = cursor + strNum + 2;// CR + LF
+												
+													// :
+													var lineEndCursor4 = ReadLine(sourceBuffer, cursor);
+													cursor = cursor + 1;// add header byte size = 1.
+													
+													additionalDeliveriesCountBytes = new byte[lineEndCursor4 - cursor];
+													Array.Copy(sourceBuffer, cursor, additionalDeliveriesCountBytes, 0, additionalDeliveriesCountBytes.Length);
+													
+													jobDatas[i] = new ByteDatas(jobIdBytes, dataBytes, nackCountBytes, additionalDeliveriesCountBytes);
+													
+													cursor = lineEndCursor4 + 2;// CR + LF
+												}
+											}
 										}
 									}
 									
@@ -457,7 +521,7 @@ namespace DisquuunCore {
 									
 									if (Failed != null) {
 										var errorStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-										// testLogger.Log("errorStr:" + errorStr);
+										// Log("errorStr:" + errorStr);
 										Failed(currentCommand, errorStr);
 									}
 									
@@ -465,7 +529,7 @@ namespace DisquuunCore {
 									break;
 								}
 								default: {
-									testLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
+									Log("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
 									cursor = bytesTransferred;
 									break;
 								}
@@ -482,8 +546,7 @@ namespace DisquuunCore {
 									
 									if (Received != null) { 	
 										// var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-										// var countNum = Convert.ToInt32(countStr);
-										// testLogger.Log("countNum:" + countNum);
+										// Log("countStr:" + countStr);
 										
 										var countBuffer = new byte[lineEndCursor - cursor];
 										Array.Copy(sourceBuffer, cursor, countBuffer, 0, countBuffer.Length);
@@ -503,7 +566,7 @@ namespace DisquuunCore {
 									
 									if (Failed != null) {
 										var errorStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-										// testLogger.Log("errorStr:" + errorStr);
+										// Log("errorStr:" + errorStr);
 										Failed(currentCommand, errorStr);
 									}
 									
@@ -511,7 +574,7 @@ namespace DisquuunCore {
 									break;
 								}
 								default: {
-									testLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
+									Log("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
 									cursor = bytesTransferred;
 									break;
 								}
@@ -527,8 +590,7 @@ namespace DisquuunCore {
 									
 									if (Received != null) { 	
 										// var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-										// var countNum = Convert.ToInt32(countStr);
-										// testLogger.Log("countNum:" + countNum);
+										// Log("countStr:" + countStr);
 										
 										var countBuffer = new byte[lineEndCursor - cursor];
 										Array.Copy(sourceBuffer, cursor, countBuffer, 0, countBuffer.Length);
@@ -548,7 +610,7 @@ namespace DisquuunCore {
 									
 									if (Failed != null) {
 										var errorStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-										// testLogger.Log("errorStr:" + errorStr);
+										// Log("errorStr:" + errorStr);
 										Failed(currentCommand, errorStr);
 									}
 									
@@ -556,7 +618,7 @@ namespace DisquuunCore {
 									break;
 								}
 								default: {
-									testLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
+									Log("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
 									cursor = bytesTransferred;
 									break;
 								}
@@ -572,8 +634,7 @@ namespace DisquuunCore {
 									
 									if (Received != null) { 	
 										// var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-										// var countNum = Convert.ToInt32(countStr);
-										// testLogger.Log("countNum:" + countNum);
+										// Log("countStr:" + countStr);
 										
 										var countBuffer = new byte[lineEndCursor - cursor];
 										Array.Copy(sourceBuffer, cursor, countBuffer, 0, countBuffer.Length);
@@ -593,7 +654,7 @@ namespace DisquuunCore {
 									
 									if (Failed != null) {
 										var errorStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-										// testLogger.Log("errorStr:" + errorStr);
+										// Log("errorStr:" + errorStr);
 										Failed(currentCommand, errorStr);
 									}
 									
@@ -601,7 +662,7 @@ namespace DisquuunCore {
 									break;
 								}
 								default: {
-									testLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
+									Log("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
 									cursor = bytesTransferred;
 									break;
 								}
@@ -622,7 +683,7 @@ namespace DisquuunCore {
 									
 									if (Received != null) {
 										// var dataStr = Encoding.UTF8.GetString(sourceBuffer, cursor, countNum);
-										// testLogger.Log("dataStr:" + dataStr);
+										// Log("dataStr:" + dataStr);
 										
 										var newBuffer = new byte[countNum];
 										Array.Copy(sourceBuffer, cursor, newBuffer, 0, countNum);
@@ -639,7 +700,7 @@ namespace DisquuunCore {
 								// 	break;
 								// }
 								default: {
-									testLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
+									Log("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
 									cursor = bytesTransferred;
 									break;
 								}
@@ -678,9 +739,9 @@ namespace DisquuunCore {
 										var lineEndCursor = ReadLine(sourceBuffer, cursor);
 										cursor = cursor + 1;// add header byte size = 1.
 										
-										var bulkCountStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-										var bulkCountNum = Convert.ToInt32(bulkCountStr);
-										// testLogger.Log("bulkCountNum:" + bulkCountNum);
+										// var bulkCountStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+										// Log("bulkCountStr:" + bulkCountStr);
+										
 										cursor = lineEndCursor + 2;// CR + LF
 									}
 									
@@ -690,8 +751,8 @@ namespace DisquuunCore {
 										cursor = cursor + 1;// add header byte size = 1.
 										
 										version = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
-										// var countNum = Convert.ToInt32(countStr);
-										// testLogger.Log(":countNum:" + countNum);
+										// Log(":version:" + version);
+										
 										cursor = lineEndCursor + 2;// CR + LF
 									}
 									
@@ -702,12 +763,12 @@ namespace DisquuunCore {
 										
 										var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
 										var strNum = Convert.ToInt32(countStr);
-										// testLogger.Log("id strNum:" + strNum);
+										// Log("id strNum:" + strNum);
 										
 										cursor = lineEndCursor + 2;// CR + LF
 										
 										thisNodeId = Encoding.UTF8.GetString(sourceBuffer, cursor, strNum);
-										// testLogger.Log("idStr:" + idStr);
+										// Log("thisNodeId:" + thisNodeId);
 										
 										cursor = cursor + strNum + 2;// CR + LF
 									}
@@ -719,7 +780,7 @@ namespace DisquuunCore {
 										
 										var bulkCountStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
 										var bulkCountNum = Convert.ToInt32(bulkCountStr);
-										// testLogger.Log("bulkCountNum:" + bulkCountNum);
+										Log("bulkCountNum:" + bulkCountNum);
 										
 										cursor = lineEndCursor + 2;// CR + LF
 										
@@ -810,7 +871,7 @@ namespace DisquuunCore {
 									break;
 								}
 								default: {
-									testLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
+									Log("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
 									cursor = bytesTransferred;
 									break;
 								}
@@ -837,7 +898,7 @@ namespace DisquuunCore {
 									break;
 								}
 								default: {
-									testLogger.LogError("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
+									Log("currentCommand:" + currentCommand + " unhanlded:" + sourceBuffer[cursor] + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor));
 									cursor = bytesTransferred;
 									break;
 								}
@@ -846,75 +907,74 @@ namespace DisquuunCore {
 						}
 						case DisqueCommand.QSTAT: {
 							var data = Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
-							testLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
+							Log("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.QPEEK: {
 							var data = Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
-							testLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
+							Log("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.ENQUEUE: {
 							var data = Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
-							testLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
+							Log("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.DEQUEUE: {
 							var data = Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
-							testLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
+							Log("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.DELJOB: {
 							var data = Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
-							testLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
+							Log("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.SHOW: {
 							var data = Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
-							testLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
+							Log("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.QSCAN: {
 							var data = Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
-							testLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
+							Log("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.JSCAN: {
 							var data = Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
-							testLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
+							Log("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						case DisqueCommand.PAUSE: {
 							var data = Encoding.UTF8.GetString(sourceBuffer, cursor, bytesTransferred - cursor);
-							testLogger.LogError("not yet applied:" + currentCommand + " data:" + data);
+							Log("not yet applied:" + currentCommand + " data:" + data);
 							cursor = bytesTransferred;
 							break;
 						}
 						default: {
-							testLogger.Log("unknown command:" + currentCommand);
+							Log("unknown command:" + currentCommand);
 							break;
 						}
 					}
 				}
-				return cursor;
 			}
 			
-			private int ReadLine (byte[] bytes, int cursor) {
-			do {
-				if (bytes[cursor] == ByteEOL) break;
-				cursor++;
-			} while (cursor < bytes.Length);
-			
-			return cursor - 1;
-		}
+			public static int ReadLine (byte[] bytes, int cursor) {
+				do {
+					if (bytes[cursor] == ByteEOL) break;
+					cursor++;
+				} while (cursor < bytes.Length);
+				
+				return cursor - 1;
+			}
 		
 		}
 		
@@ -962,7 +1022,7 @@ namespace DisquuunCore {
 				parameters[i] = queueIds[i - (args.Length + 1)];
 			}
 			// foreach (var i in parameters) {
-			// 	testLogger.Log("i:" + i);
+			// 	Log("i:" + i);
 			// }
 			SendBytes(DisqueCommand.GETJOB, parameters);
 		}
@@ -1039,9 +1099,10 @@ namespace DisquuunCore {
 				}
 				strCommand = sb.ToString();
 			}
-			// testLogger.Log("strCommand:" + strCommand);
+			// Log("strCommand:" + strCommand);
 			
-			// 結局byteに変換してるんだよな。
+			// 結局byteに変換してるんだよな~ なので
+			
 			byte[] bytes = Encoding.UTF8.GetBytes(strCommand.ToCharArray());
 			
 			socketToken.stack.Enqueue(commandEnum);
@@ -1071,6 +1132,9 @@ namespace DisquuunCore {
 			}
 		}
 		
+		private static void Log (string message) {
+			// TestLogger.Log(message);
+		}
 		
 		
 		/*
@@ -1084,20 +1148,6 @@ namespace DisquuunCore {
 			if (part1 && part2) return false;
 			
 			return true;
-		}
-		
-		private static ulong GetHash (string str) {
-			using (var md5 = MD5.Create()) {
-				using (var stream = new MemoryStream()) {
-					using (var writer = new StreamWriter(stream)) {
-						writer.Write(str);
-						writer.Flush();
-						stream.Position = 0;
-						var hashed = md5.ComputeHash(stream);
-						return BitConverter.ToUInt64(hashed, 0);
-					}
-				}
-			}
 		}
 	}
 }

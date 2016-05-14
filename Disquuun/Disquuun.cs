@@ -110,9 +110,7 @@ namespace DisquuunCore {
 		
 		public void UpdateState () {
 			lock (socketPool) {
-				var connectionCount = socketPool
-					.Where(s => s.State() == DisquuunSocket.SocketState.OPENED)
-					.ToArray().Length;
+				var connectionCount = AvailableSockets().Length;
 				
 				switch (connectionCount) {
 					case 0: {
@@ -138,56 +136,94 @@ namespace DisquuunCore {
 			foreach (var socket in socketPool) socket.Disconnect(force);
 		}
 		
+		private DisquuunSocket[] AvailableSockets () {
+			var avaiableSockets = socketPool.Where(socket => socket.State() == DisquuunSocket.SocketState.OPENED).ToArray();
+			if (avaiableSockets.Length == 1) {
+				// 次がない
+			}
+			return avaiableSockets;
+		}
+		
+		private DisquuunSocket ChooseAvailableSocket () {
+			return AvailableSockets()[0];
+		}
+		
+		
+		
+		
 		/*
-			API gateway
+			Disque API gateway
 		*/
 		public DisquuunInput AddJob (string queueName, byte[] data, int timeout=0, params object[] args) {
 			var bytes = DisquuunAPI.AddJob(queueName, data, timeout, args);
-			return null;
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.ADDJOB, bytes, socket);
 		}
 		
 		public DisquuunInput GetJob (string[] queueIds, params object[] args) {
-			// return DisquuunAPI.GetJob(queueIds, args);
-			return null;
+			var bytes = DisquuunAPI.GetJob(queueIds, args);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.GETJOB, bytes, socket);
 		}
 		
 		public DisquuunInput AckJob (string[] jobIds) {
-			// return DisquuunAPI.AckJob(jobIds);
-			return null;
+			var bytes = DisquuunAPI.AckJob(jobIds);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.ACKJOB, bytes, socket);
 		}
 
 		public DisquuunInput FastAck (string[] jobIds) {
-			// return DisquuunAPI.FastAck(jobIds);
-			return null;
+			var bytes = DisquuunAPI.FastAck(jobIds);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.FASTACK, bytes, socket);
 		}
 
 		public DisquuunInput Working (string jobId) {
-			// return DisquuunAPI.Working(jobId);
-			return null;
+			var bytes = DisquuunAPI.Working(jobId);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.WORKING, bytes, socket);
 		}
 
 		public DisquuunInput Nack (string[] jobIds) {
-			// return DisquuunAPI.Nack(jobIds);
-			return null;
+			var bytes = DisquuunAPI.Nack(jobIds);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.NACK, bytes, socket);
 		}
 		
 		public DisquuunInput Info () {
 			var data = DisquuunAPI.Info();
 			
-			TestLogger.Log("busyじゃないSocketを探して渡す。この部分が重そうだな〜〜ガトリングガンみたいな感じに次を用意しとくか。");
-			var socket = socketPool[0];
+			var socket = ChooseAvailableSocket();
 			
 			return new DisquuunInput(DisqueCommand.INFO, data, socket);
 		}
 		
 		public DisquuunInput Hello () {
-			// return DisquuunAPI.Hello();
-			return null;
+			var bytes = DisquuunAPI.Hello();
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.HELLO, bytes, socket);
 		}
 		
 		public DisquuunInput Qlen (string queueId) {
-			// return DisquuunAPI.Qlen(queueId);
-			return null;
+			var bytes = DisquuunAPI.Qlen(queueId);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.QLEN, bytes, socket);
 		}
 		
 		/*

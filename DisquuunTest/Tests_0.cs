@@ -4,6 +4,10 @@ using System.Collections.Generic;
 using DisquuunCore;
 using DisquuunCore.Deserialize;
 
+/*
+	basement api tests.
+*/
+
 public partial class Tests {
 	public void _0_0_InitWith2Connection (Disquuun disquuun) {
 		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
@@ -27,8 +31,8 @@ public partial class Tests {
 	public void _0_2_SyncInfo (Disquuun disquuun) {
 		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		var data = disquuun.Info().Sync();
-		var infoStr = DisquuunDeserializer.Info(data);
-		// なんかバリデーションしないとな〜
+		var infoStr = DisquuunDeserializer.Info(data).rawString;
+		Assert(!string.IsNullOrEmpty(infoStr), "empty.");
 	}
 	
 	public void _0_3_SyncInfoTwice (Disquuun disquuun) {
@@ -36,14 +40,14 @@ public partial class Tests {
 		
 		{
 			var datas = disquuun.Info().Sync();
-			var infoStr = DisquuunDeserializer.Info(datas);
-			// なんかバリデーションしないとな〜
+			var infoStr = DisquuunDeserializer.Info(datas).rawString;
+			Assert(!string.IsNullOrEmpty(infoStr), "empty.");
 		}
 		
 		{
 			var datas = disquuun.Info().Sync();
-			var infoStr = DisquuunDeserializer.Info(datas);
-			// なんかバリデーションしないとな〜
+			var infoStr = DisquuunDeserializer.Info(datas).rawString;
+			Assert(!string.IsNullOrEmpty(infoStr), "empty.");
 		}	
 	}
 	
@@ -53,7 +57,7 @@ public partial class Tests {
 		var infoStr = string.Empty;
 		disquuun.Info().Async(
 			(DisqueCommand command, DisquuunResult[] datas) => {
-				infoStr = DisquuunDeserializer.Info(datas);
+				infoStr = DisquuunDeserializer.Info(datas).rawString;
 			}
 		);
 		
@@ -66,7 +70,7 @@ public partial class Tests {
 		var infoStr = string.Empty;
 		disquuun.Info().Loop(
 			(DisqueCommand command, DisquuunResult[] datas) => {
-				infoStr = DisquuunDeserializer.Info(datas);
+				infoStr = DisquuunDeserializer.Info(datas).rawString;
 				return false;
 			} 
 		);
@@ -80,7 +84,7 @@ public partial class Tests {
 		var infos = new List<string>();
 		disquuun.Info().Loop(
 			(DisqueCommand command, DisquuunResult[] datas) => {
-				var infoStr = DisquuunDeserializer.Info(datas);
+				var infoStr = DisquuunDeserializer.Info(datas).rawString;
 				infos.Add(infoStr);
 				if (infos.Count < 2) return true;
 				return false;
@@ -96,7 +100,7 @@ public partial class Tests {
 		var infos = new List<string>();
 		disquuun.Info().Loop(
 			(DisqueCommand command, DisquuunResult[] datas) => {
-				var infoStr = DisquuunDeserializer.Info(datas);
+				var infoStr = DisquuunDeserializer.Info(datas).rawString;
 				infos.Add(infoStr);
 				if (infos.Count < 100) return true;
 				return false;

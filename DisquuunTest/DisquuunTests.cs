@@ -34,26 +34,46 @@ public partial class Tests {
 		tests.Add(_0_6_LoopInfo_Twice);
 		tests.Add(_0_7_LoopInfo_100);
 		
-		// apis.
-		tests.Add(_1_0_AddJob);
-		tests.Add(_1_1_GetJob);
-		tests.Add(_1_1_1_GetJobWithCount);
-		tests.Add(_1_1_2_GetJobFromMultiQueue);
-		tests.Add(_1_1_3_GetJobWithNoHang);
-		tests.Add(_1_2_AckJob);
-		tests.Add(_1_3_Fastack);
+		// sync apis.
+		tests.Add(_1_0_AddJob_Sync);
+		tests.Add(_1_1_GetJob_Sync);
+		tests.Add(_1_1_1_GetJobWithCount_Sync);
+		tests.Add(_1_1_2_GetJobFromMultiQueue_Sync);
+		tests.Add(_1_1_3_GetJobWithNoHang_Sync);
+		tests.Add(_1_2_AckJob_Sync);
+		tests.Add(_1_3_Fastack_Sync);
+		
+		// async apis.
+		tests.Add(_2_0_AddJob_Async);
+		tests.Add(_2_1_GetJob_Async);
+		tests.Add(_2_1_1_GetJobWithCount_Async);
+		tests.Add(_2_1_2_GetJobFromMultiQueue_Async);
+		tests.Add(_2_1_3_GetJobWithNoHang_Async);
+		tests.Add(_2_2_AckJob_Async);
+		tests.Add(_2_3_Fastack_Async);
 		
 		// multiSocket.
-		tests.Add(_2_0_2SyncSocket);
-		tests.Add(_2_1_MultipleSyncSocket);
+		tests.Add(_3_0_2SyncSocket);
+		tests.Add(_3_1_MultipleSyncSocket);
+		
+		// buffer over.
+		tests.Add(_4_0_ByfferOverWithSingleSyncGetJob_Sync);
+		tests.Add(_4_1_ByfferOverWithMultipleSyncGetJob_Sync);
+		tests.Add(_4_2_ByfferOverWithSokcetOverSyncGetJob_Sync);
+		tests.Add(_4_3_ByfferOverWithSingleSyncGetJob_Async);
+		tests.Add(_4_4_ByfferOverWithMultipleSyncGetJob_Async);
+		tests.Add(_4_5_ByfferOverWithSokcetOverSyncGetJob_Async);
+		
+		// error handling.
+		// tests.Add(_5_0_Error)// sync時に出るエラー、接続できないとかその辺。
+		
 		
 		
 		TestLogger.Log("tests started.");
 		
-		
 		foreach (var test in tests) {
 			try {
-				var disquuun = new Disquuun("127.0.0.1", 7711, 10240, 2);
+				var disquuun = new Disquuun("127.0.0.1", 7711, 2020008, 2);
 				test(disquuun);
 				if (disquuun != null) {
 					disquuun.Disconnect(true);
@@ -64,12 +84,14 @@ public partial class Tests {
 			}
 		}
 		
+		
 		var disquuun2 = new Disquuun("127.0.0.1", 7711, 10240, 1);
 		WaitUntil(() => (disquuun2.State() == Disquuun.ConnectionState.OPENED), 5);
 		var result = DisquuunDeserializer.Info(disquuun2.Info().Sync());
 		disquuun2.Disconnect(true);
-		
-		TestLogger.Log("all tests over. rest unconsumed job:" + result.jobs.registered_jobs);
+		var restJobCount = -1;
+		if (result.jobs != null) restJobCount = result.jobs.registered_jobs;
+		TestLogger.Log("all tests over. rest unconsumed job:" + restJobCount);
 	}
 	
 	

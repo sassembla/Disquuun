@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace DisquuunCore {
     public class DisquuunSocket {
@@ -28,18 +29,23 @@ namespace DisquuunCore {
 			
 			public readonly Socket socket;
 			
+			public byte[] receiveBuffer;
+			public int readableDataLength;
+			
 			public readonly SocketAsyncEventArgs connectArgs;
 			public readonly SocketAsyncEventArgs sendArgs;
 			public readonly SocketAsyncEventArgs receiveArgs;
 			
 			public DisqueCommand currentCommand;
-			public byte[] currentBytes;
+			public byte[] currentSendingBytes;
 			
 			public Func<DisqueCommand, DisquuunCore.DisquuunResult[], bool> AsyncCallback;
 			
-			public SocketToken (Socket socket, SocketAsyncEventArgs connectArgs, SocketAsyncEventArgs sendArgs, SocketAsyncEventArgs receiveArgs) {
+			public SocketToken (Socket socket, long bufferSize, SocketAsyncEventArgs connectArgs, SocketAsyncEventArgs sendArgs, SocketAsyncEventArgs receiveArgs) {
 				this.socketState = SocketState.OPENING;
 				this.socket = socket;
+				
+				this.receiveBuffer = new byte[bufferSize];
 				
 				this.connectArgs = connectArgs;
 				this.sendArgs = sendArgs;
@@ -48,6 +54,8 @@ namespace DisquuunCore {
 				this.connectArgs.UserToken = this;
 				this.sendArgs.UserToken = this;
 				this.receiveArgs.UserToken = this;
+				
+				this.receiveArgs.SetBuffer(receiveBuffer, 0, receiveBuffer.Length);
 			}
 		}
 		
@@ -67,13 +75,11 @@ namespace DisquuunCore {
 			sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
 			
 			var receiveArgs = new SocketAsyncEventArgs();
-			byte[] receiveBuffer = new byte[bufferSize];
-			receiveArgs.SetBuffer(receiveBuffer, 0, receiveBuffer.Length);
 			receiveArgs.AcceptSocket = clientSocket;
 			receiveArgs.RemoteEndPoint = endPoint;
 			receiveArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnReceived);
 						
-			socketToken = new SocketToken(clientSocket, connectArgs, sendArgs, receiveArgs);
+			socketToken = new SocketToken(clientSocket, bufferSize, connectArgs, sendArgs, receiveArgs); 
 			
 			// start connect.
 			if (!clientSocket.ConnectAsync(socketToken.connectArgs)) OnConnected(clientSocket, connectArgs);
@@ -87,26 +93,52 @@ namespace DisquuunCore {
 			socketToken.socketState = SocketState.BUSY;
 			socketToken.socket.Send(data);
 			
-			TestLogger.Log("バッファ使いたいね。");
+			// TestLogger.Log("send失敗とかもありえるはず。");
 			
-			// waiting for result data.
-			var header = new byte[1];
-			socketToken.socket.Receive(header);
+			var currentLength = 0;
+			var scanResult = new DisquuunAPI.ScanResult(false);
 			
-			var available = socketToken.socket.Available;
-			var buffer = new byte[available + 1];
-			buffer[0] = header[0];
+			while (true) {
+				// waiting for head of transferring data or rest of data.
+				socketToken.socket.Receive(socketToken.receiveBuffer, currentLength, 1, SocketFlags.None);
+				currentLength = currentLength + 1;
+				
+				var available = socketToken.socket.Available;
+				var readableLength = currentLength + available;
+				{
+					if (socketToken.receiveBuffer.Length < readableLength) {
+						TestLogger.Log("サイズオーバーしてる " + socketToken.receiveBuffer.Length + " vs:" + readableLength);
+						Array.Resize(ref socketToken.receiveBuffer, readableLength);
+					} else {
+						// TestLogger.Log("まだサイズオーバーしてない " + socketToken.receiveBuffer.Length + " vs:" + readableLength + " が、読み込みの過程でサイズオーバーしそう。");
+					}
+				}
+				
+				// read rest.
+				socketToken.socket.Receive(socketToken.receiveBuffer, currentLength, available, SocketFlags.None);
+				currentLength = currentLength + available;
+				
+				scanResult = DisquuunAPI.ScanBuffer(command, socketToken.receiveBuffer, currentLength);
+				if (scanResult.isDone) break;
+				
+				// continue reading data from socket.
+				// if need, prepare for next 1 byte.
+				if (socketToken.receiveBuffer.Length == readableLength) {
+					TestLogger.Log("サイズオーバーの拡張をしてて、さらにもう1byte以上読む必要がある。");
+					Array.Resize(ref socketToken.receiveBuffer, socketToken.receiveBuffer.Length + 1);
+				}
+			}
 			
-			socketToken.socket.Receive(buffer, 1, available, SocketFlags.None);
-			var result = DisquuunAPI.EvaluateSingleCommand(command, available+1, buffer);
 			socketToken.socketState = SocketState.OPENED;
-			return result;
+			return scanResult.data;
 		}
 		
 		public void Async (DisqueCommand command, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback) {
 			socketToken.socketState = SocketState.BUSY;
 			
 			// ready for receive.
+			socketToken.readableDataLength = 0;
+			socketToken.receiveArgs.SetBuffer(socketToken.receiveBuffer, 0, socketToken.receiveBuffer.Length);
 			if (!socketToken.socket.ReceiveAsync(socketToken.receiveArgs)) OnReceived(socketToken.socket, socketToken.receiveArgs);
 			
 			socketToken.currentCommand = command;
@@ -119,14 +151,17 @@ namespace DisquuunCore {
 			socketToken.socketState = SocketState.BUSY;
 			
 			// ready for receive.
+			socketToken.readableDataLength = 0;
+			socketToken.receiveArgs.SetBuffer(socketToken.receiveBuffer, 0, socketToken.receiveBuffer.Length);
 			if (!socketToken.socket.ReceiveAsync(socketToken.receiveArgs)) OnReceived(socketToken.socket, socketToken.receiveArgs);
 			
 			socketToken.currentCommand = command;
-			socketToken.currentBytes = data;
+			socketToken.currentSendingBytes = data;
 			socketToken.AsyncCallback = Callback;
 			socketToken.sendArgs.SetBuffer(data, 0, data.Length);
 			if (!socketToken.socket.SendAsync(socketToken.sendArgs)) OnSend(socketToken.socket, socketToken.sendArgs); 
 		}
+		
 		
 		/*
 			handlers
@@ -189,8 +224,11 @@ namespace DisquuunCore {
 			}
 		}
 		
+		private int count = 0;
+		
 		private void OnReceived (object unused, SocketAsyncEventArgs args) {
 			var token = (SocketToken)args.UserToken;
+			
 			if (args.SocketError != SocketError.Success) { 
 				switch (token.socketState) {
 					case SocketState.CLOSING:
@@ -219,45 +257,67 @@ namespace DisquuunCore {
 			}
 			
 			if (0 < args.BytesTransferred) {
-				var dataSource = args.Buffer;
 				var bytesAmount = args.BytesTransferred;
 				
-				var rest = args.AcceptSocket.Available;
-				if (0 < rest) {
-					var restBuffer = new byte[rest];
-					var additionalReadResult = token.socket.Receive(restBuffer, SocketFlags.None);
-					
-					var baseLength = dataSource.Length;
-					Array.Resize(ref dataSource, baseLength + rest);
-					
-					for (var i = 0; i < rest; i++) dataSource[baseLength + i] = restBuffer[i];
-					bytesAmount = dataSource.Length;
-				}
+				// update as read completed.
+				token.readableDataLength = token.readableDataLength + bytesAmount;
 				
+				var result = DisquuunAPI.ScanBuffer(token.currentCommand, token.receiveBuffer, token.readableDataLength);
 				
-				// このへんで気になるのが、Asyncでいろんな動作をやった時、socketが足りなくなったらどうしようっていうやつだな、、みんなどうしてるんだろうね。
-				// 要件としては、
-				
-				// ・全部いっぱいいっぱいな場合は貯める(Asyncならまあ、データで待てる。データスタック持っておけば良い。)(Syncが来た時にいっぱいいっぱいだったら？とかは辛いな。socketShortage出しちゃおう。)
-				
-				// ・気にせずsocketに積む(積めるルールがある気がする。Syncの上にAsync積むのはできないし、逆もできない。使い中のSocketのタイプに寄る感じになる。よくないのでは、、)
-				
-				// とかか。気にせず積もうかな。振り分けのロジックのバランシングができればそれで良い気がする。GetJobとかがロックするのはしょうがないことなんで。
-				// 問題になりそうなのは、Asyncで詰まってるようなところに、Syncでメッセージ送ろうとすると詰まっちゃって、これはユーザーから見えないところ。
-				// それは避けないとな〜〜っていう。
-				
-				var result = DisquuunAPI.EvaluateSingleCommand(token.currentCommand, bytesAmount, dataSource);
-				var continuation = token.AsyncCallback(token.currentCommand, result);
-				
-				if (continuation) {
-					// ready for receive.
-					if (!socketToken.socket.ReceiveAsync(socketToken.receiveArgs)) OnReceived(socketToken.socket, socketToken.receiveArgs);
-			
-					socketToken.sendArgs.SetBuffer(token.currentBytes, 0, token.currentBytes.Length);
-					if (!token.socket.SendAsync(token.sendArgs)) OnSend(token.socket, token.sendArgs);
+				if (result.isDone) {
+					var continuation = token.AsyncCallback(token.currentCommand, result.data);
+					if (continuation) {
+						// ready for loop receive.
+						token.readableDataLength = 0;
+						token.receiveArgs.SetBuffer(token.receiveBuffer, 0, token.receiveBuffer.Length);
+						if (!token.socket.ReceiveAsync(token.receiveArgs)) OnReceived(token.socket, token.receiveArgs);
+						
+						token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
+						if (!token.socket.SendAsync(token.sendArgs)) OnSend(token.socket, token.sendArgs);
+					} else {
+						token.socketState = SocketState.OPENED;
+					}
 				} else {
-					token.socketState = SocketState.OPENED;
+					/*
+						note that,
+						
+						SetBuffer([buffer], offset, count)'s "count" is, actually not count.
+						 
+						it's "offset" is "offset of receiving-data-window against buffer",
+						but the "count" is actually "size limitation of next receivable data size".
+						
+						this "size" should be smaller than size of current bufferSize - offset && larger than 0.
+						
+						e.g.
+							if buffer is buffer[10], offset can set 0 ~ 8, and,
+							count should be 9 ~ 1.
+						
+						if vaiolate to this rule, ReceiveAsync never receive data. not good behaviour.
+						
+						and, the "buffer" is treated as pointer. this API treats the pointer of buffer directly.
+						this means, when the byteTransferred is reaching to the size of "buffer", then you resize it to proper size,
+						
+						you should re-set the buffer's pointer by using SetBuffer API.
+						
+						
+						actually, SetBuffer's parameters are below.
+						
+						socket.SetBuffer([bufferAsPointer], additionalDataOffset, receiveSizeLimit)
+					*/
+					
+					var nextAdditionalBytesLength = token.socket.Available;
+					
+					if (token.readableDataLength == token.receiveBuffer.Length) {
+						TestLogger.Log("次のデータが来るのが確定していて、かつバッファサイズが足りない。");
+						Array.Resize(ref token.receiveBuffer, token.receiveArgs.Buffer.Length + nextAdditionalBytesLength);
+					}
+					
+					var receivableCount = token.receiveBuffer.Length - token.readableDataLength;
+					token.receiveArgs.SetBuffer(token.receiveBuffer, token.readableDataLength, receivableCount);
+					if (!token.socket.ReceiveAsync(token.receiveArgs)) OnReceived(token.socket, token.receiveArgs);
 				}
+				
+				
 			}
 		}
 		
@@ -291,6 +351,7 @@ namespace DisquuunCore {
 				}
 			}
 		}
+		
 		
 		/*
 			utils

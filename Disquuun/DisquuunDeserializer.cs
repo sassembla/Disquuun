@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace DisquuunCore.Deserialize {
 	
@@ -83,9 +84,10 @@ namespace DisquuunCore.Deserialize {
 			
 			public InfoStruct (byte[] sourceData) {
 				this.rawString = Encoding.UTF8.GetString(sourceData);
+				var lisesSoucrce = rawString.Replace("\r", string.Empty);
 				
-				var lines = rawString.Split(new char[]{'\r','\n'});
-				var lineIndexies = new List<int>{0};
+				var lines = lisesSoucrce.Split('\n');
+				var lineIndexies = new List<int>{0};// first index is 0.
 				
 				for (var i = 0; i < lines.Length; i++) {
 					var line = lines[i];
@@ -94,14 +96,14 @@ namespace DisquuunCore.Deserialize {
 				
 				for (var i = 0; i < lineIndexies.Count; i++) {
 					var firstLineIndex = lineIndexies[i];
-					var nextBlockIndex = -1;
 					
+					var nextBlockIndex = -1;
 					if (i+1 < lineIndexies.Count) nextBlockIndex = lineIndexies[i+1];
 					else continue;
 					
 					var infoCategolyStr = lines[firstLineIndex];
 					var blockHeaderAndValue = lines
-												.Where((p, index) => index < firstLineIndex && index < nextBlockIndex)
+												.Where((p, index) => firstLineIndex < index && index < nextBlockIndex)
 												.Where(line => line.Contains(":"))
 												.Select(line => new HeaderAndValue(line))
 												.ToArray();

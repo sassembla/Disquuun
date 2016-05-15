@@ -125,6 +125,7 @@ namespace DisquuunCore {
 			}
 		}
 		
+		
 		public ConnectionState State () {
 			UpdateState();
 			return connectionState;

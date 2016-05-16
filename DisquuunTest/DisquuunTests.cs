@@ -27,6 +27,7 @@ public partial class Tests {
 		// basement.
 		tests.Add(_0_0_InitWith2Connection);
 		tests.Add(_0_0_1_WaitOnOpen2Connection);
+		tests.Add(_0_0_2_ReadmeSample);
 		tests.Add(_0_1_ConnectionFailedWithNoDisqueServer);
 		tests.Add(_0_2_SyncInfo);
 		tests.Add(_0_3_SyncInfoTwice);

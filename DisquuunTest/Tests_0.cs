@@ -27,8 +27,39 @@ public partial class Tests {
 		
 		disquuun2.Disconnect(true);
 	}
+	
+	public void _0_0_2_ReadmeSample (Disquuun disquuun) {
+		Disquuun disquuun2 = null;
+		
+		bool overed = false;
+		disquuun2 = new Disquuun("127.0.0.1", 7711, 1024, 1,
+			disquuunId => {
+				var queueId = Guid.NewGuid().ToString();
+
+				// addjob. add 10bytes job to Disque.
+				disquuun2.AddJob(queueId, new byte[10]).Sync();
+
+				// getjob. get job from Disque.
+				var result = disquuun2.GetJob(new string[]{queueId}).Sync();
+				var jobDatas = DisquuunDeserializer.GetJob(result);
+
+				Assert(1, jobDatas.Length, "not match.");
+
+				// fastack.
+				var jobId = jobDatas[0].jobId;
+				disquuun2.FastAck(new string[]{jobId}).Sync();
+				
+				overed = true;
+			}
+		);
+		
+		WaitUntil(() => overed, 5);
+		
+		disquuun2.Disconnect(true);
+	}
 
     public void _0_1_ConnectionFailedWithNoDisqueServer (Disquuun disquuun) {
+		
 		Exception e = null;
 		Action<Exception> Failed = (Exception e2) => {
 			// set error to param,
@@ -131,5 +162,6 @@ public partial class Tests {
 		
 		WaitUntil(() => (infos.Count == 100), 5);		
 	}
+	
 	
 }

@@ -33,3 +33,29 @@ disquuun = new Disquuun("127.0.0.1", 7711, 1024, 1,
 	}
 );
 ```
+sync & async api is supported.
+
+
+##advanced usage
+Disquuun can getting job with Loop(callback).
+
+```C#
+disquuun.GetJob(new string[]{queueId}, "count", 1000).Loop(
+	(command, data) => {
+		var jobs = DisquuunDeserializer.GetJob(data);
+		
+		var jobIds = jobs.Select(jobData => jobData.jobId).ToArray();
+		var jobDatas = jobs.Select(jobData => jobData.jobData).ToList();
+		
+		/*
+			fast ack all.
+		*/
+		disquuun.FastAck(jobIds).Async((command2, data2) => {});
+		
+		InputDatasToContext(jobDatas);
+		return true;
+	}
+);
+```
+
+The Loop() frequency is depends on behaviour of the Dique's API. GetJob without "nohang" option will be locked until queueId-queue gets new jobs in Disque. In this case you can wait the incoming of new job data and then keep waiting next job data.

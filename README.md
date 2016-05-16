@@ -33,7 +33,7 @@ disquuun = new Disquuun("127.0.0.1", 7711, 1024, 1,
 	}
 );
 ```
-sync & async api is supported.
+Sync & Async api is supported. but Sync api will be deplicated.
 
 
 ##advanced usage

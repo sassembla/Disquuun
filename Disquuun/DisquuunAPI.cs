@@ -2,7 +2,6 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
-using UnityEngine;
 
 namespace DisquuunCore {
     public static class DisquuunAPI {
@@ -236,7 +235,6 @@ namespace DisquuunCore {
 			public readonly bool isDone;
 			public readonly DisquuunResult[] data;
 			public ScanResult (bool isDone, DisquuunResult[] data) {
-				if (!isDone) Debug.LogError("isDone is false.");
 				this.isDone = isDone;
 				this.data = data;
 			}

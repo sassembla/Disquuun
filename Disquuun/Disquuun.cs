@@ -60,6 +60,7 @@ namespace DisquuunCore {
 		public ConnectionState connectionState;
 		
 		
+		private readonly Action<string> ConnectionOpened;
 		private readonly Action<Exception> ConnectionFailed;
 		
 		private List<DisquuunSocket> socketPool;
@@ -76,6 +77,7 @@ namespace DisquuunCore {
 			int port,
 			long bufferSize,
 			int maxConnectionCount,
+			Action<string> ConnectionOpened=null,
 			Action<Exception> ConnectionFailed=null
 		) {
 			this.connectionId = Guid.NewGuid().ToString();
@@ -86,26 +88,40 @@ namespace DisquuunCore {
 			this.connectionState = ConnectionState.ALLCLOSED;
 			
 			/*
-				set handlers for connection error.
+				ConnectionOpened handler treats all connections are opened.
+			*/
+			if (ConnectionOpened != null) this.ConnectionOpened = ConnectionOpened;
+			else this.ConnectionOpened = conId => {};
+			
+			/*
+				ConnectionFailed handler only treats connection error.
+				
 				other runtime errors will emit in API handler.
 			*/
-			this.ConnectionFailed = ConnectionFailed;
+			if (ConnectionFailed != null) this.ConnectionFailed = ConnectionFailed;
+			else ConnectionFailed = e => {};
 			
 			socketPool = new List<DisquuunSocket>();
 			for (var i = 0; i < maxConnectionCount; i++) {
-				var socketObj = new DisquuunSocket(endPoint, bufferSize, OnSocketConnectionFailed);
+				var socketObj = new DisquuunSocket(endPoint, bufferSize, OnSocketOpened, OnSocketConnectionFailed);
 				socketPool.Add(socketObj);
 			}
 		}
 		
+		private void OnSocketOpened (DisquuunSocket source, string socketId) {
+			var currentState = connectionState;
+			
+			UpdateState();// 開き直す、みたいな動作が発生したときも、openが発生すべきかどうか。うーー、、、ん、、、相手に状態を持たせるのはなあ、、2つ用意する？ 一回しか呼ばれないようにする?
+			// 一回だな。個別のコネクションを足す拡張をする場合、Openedは呼ばれない。
+			
+			if (currentState == ConnectionState.ALLCLOSED && connectionState == ConnectionState.OPENED) {
+				ConnectionOpened(connectionId);
+			} 
+		}
 		
 		private void OnSocketConnectionFailed (DisquuunSocket source, Exception e) {
-			lock (socketPool) {
-				socketPool.Remove(source);
-				if (ConnectionFailed != null) ConnectionFailed(e); 
-			}
-			
 			UpdateState();
+			if (ConnectionFailed != null) ConnectionFailed(e); 
 		}
 		
 		public void UpdateState () {
@@ -134,13 +150,20 @@ namespace DisquuunCore {
 		
 		public void Disconnect (bool force=false) {
 			connectionState = ConnectionState.ALLCLOSING;
-			foreach (var socket in socketPool) socket.Disconnect(force);
+			lock (socketPool) {
+				foreach (var socket in socketPool) socket.Disconnect(force);
+			}
+			
+			
 		}
 		
 		private DisquuunSocket[] AvailableSockets () {
 			var avaiableSockets = socketPool.Where(socket => socket.State() == DisquuunSocket.SocketState.OPENED).ToArray();
 			if (avaiableSockets.Length == 1) {
 				// 次がない
+			}
+			if (avaiableSockets.Length == 0) {
+				// 一個も無い
 			}
 			return avaiableSockets;
 		}

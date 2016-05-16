@@ -12,6 +12,21 @@ public partial class Tests {
 	public void _0_0_InitWith2Connection (Disquuun disquuun) {
 		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 	}
+	
+	public void _0_0_1_WaitOnOpen2Connection (Disquuun disquuun) {
+		var conId = string.Empty;
+		var disquuun2 = new Disquuun("127.0.0.1", 7711, 1, 1, 
+			connectionId => {
+				conId = connectionId;
+			},
+			e => {
+				
+			}
+		);
+		WaitUntil(() => !string.IsNullOrEmpty(conId), 5);
+		
+		disquuun2.Disconnect(true);
+	}
 
     public void _0_1_ConnectionFailedWithNoDisqueServer (Disquuun disquuun) {
 		Exception e = null;
@@ -21,7 +36,14 @@ public partial class Tests {
 			// TestLogger.Log("e:" + e);
 		};
 		
-		var disquuun2 = new Disquuun("127.0.0.1", 8888, 1024, 1, Failed);
+		var disquuun2 = new Disquuun("127.0.0.1", 8888, 1024, 1, 
+			conId => {},
+			e2 => {
+				// set error to param,
+				e = e2;
+				// TestLogger.Log("e:" + e);
+			}
+		);
 		
 		WaitUntil(() => (e != null), 1);
 		

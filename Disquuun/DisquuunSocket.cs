@@ -1,11 +1,13 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 
 namespace DisquuunCore {
     public class DisquuunSocket {
-		private Action<DisquuunSocket, Exception> ConnectionFailed;
+		public readonly string socketId;
+		
+		private Action<DisquuunSocket, string> SocketOpened;
+		private Action<DisquuunSocket, Exception> SocketClosed;
 		
 		private SocketToken socketToken;
 		
@@ -59,8 +61,11 @@ namespace DisquuunCore {
 			}
 		}
 		
-		public DisquuunSocket (IPEndPoint endPoint, long bufferSize, Action<DisquuunSocket, Exception> ConnectionFailed) {
-			this.ConnectionFailed = ConnectionFailed;
+		public DisquuunSocket (IPEndPoint endPoint, long bufferSize, Action<DisquuunSocket, string> SocketOpened, Action<DisquuunSocket, Exception> SocketClosed) {
+			this.socketId = Guid.NewGuid().ToString();
+			
+			this.SocketOpened = SocketOpened;
+			this.SocketClosed = SocketClosed;
 			
 			var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 			
@@ -174,14 +179,12 @@ namespace DisquuunCore {
 						token.socketState = SocketState.CLOSED;
 						var error = new Exception("connect error:" + args.SocketError.ToString());
 						
-						ConnectionFailed(this, error);
+						SocketClosed(this, error);
 						return;
 					}
 					
 					token.socketState = SocketState.OPENED;
-					
-					// // ready receive data.
-					// token.socket.ReceiveAsync(token.receiveArgs);// この行の内容を、Loop設定時にすれば良い。
+					SocketOpened(this, socketId);
 					return;
 				}
 				default: {

@@ -373,7 +373,7 @@ namespace DisquuunCore {
 								break;
 							}
 							case SocketState.DISPOSABLE_BUSY: {
-								// close.
+								// disposable connection should be close after used.
 								StartCloseAsync();
 								break;
 							}

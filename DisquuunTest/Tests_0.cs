@@ -28,26 +28,24 @@ public partial class Tests {
 		disquuun2.Disconnect(true);
 	}
 	
-	public void _0_0_2_ReadmeSample (Disquuun disquuun) {
-		Disquuun disquuun2 = null;
-		
+	public void _0_0_2_ReadmeSampleSync (Disquuun disquuun) {
 		bool overed = false;
-		disquuun2 = new Disquuun("127.0.0.1", 7711, 1024, 1,
+		disquuun = new Disquuun("127.0.0.1", 7711, 1024, 1,
 			disquuunId => {
 				var queueId = Guid.NewGuid().ToString();
 
 				// addjob. add 10bytes job to Disque.
-				disquuun2.AddJob(queueId, new byte[10]).DEPRICATED_Sync();
+				disquuun.AddJob(queueId, new byte[10]).DEPRICATED_Sync();
 
 				// getjob. get job from Disque.
-				var result = disquuun2.GetJob(new string[]{queueId}).DEPRICATED_Sync();
+				var result = disquuun.GetJob(new string[]{queueId}).DEPRICATED_Sync();
 				var jobDatas = DisquuunDeserializer.GetJob(result);
 
 				Assert(1, jobDatas.Length, "not match.");
 
 				// fastack.
 				var jobId = jobDatas[0].jobId;
-				disquuun2.FastAck(new string[]{jobId}).DEPRICATED_Sync();
+				disquuun.FastAck(new string[]{jobId}).DEPRICATED_Sync();
 				
 				overed = true;
 			}
@@ -55,7 +53,51 @@ public partial class Tests {
 		
 		WaitUntil(() => overed, 5);
 		
-		disquuun2.Disconnect(true);
+		disquuun.Disconnect(true);
+	}
+	
+	public void _0_0_3_ReadmeSampleAsync (Disquuun disquuun) {
+		int fastAckedJobCount = 0;
+		
+		disquuun = new Disquuun("127.0.0.1", 7711, 1024, 2,
+			disquuunId => {
+				var queueId = Guid.NewGuid().ToString();
+
+				// addjob. add 10bytes job to Disque.
+				disquuun.AddJob(queueId, new byte[10]).Async(
+					(addJobCommand, addJobData) => {
+						// job added to queueId @ Disque.
+						
+						// getjob. get job from Disque.
+						disquuun.GetJob(new string[]{queueId}).Async(
+							(getJobCommand, getJobData) => {
+								// got job from queueId @ Disque.
+								
+								var jobDatas = DisquuunDeserializer.GetJob(getJobData);
+								Assert(1, jobDatas.Length, "not match.");
+								
+								// get jobId from got job data.
+								var gotJobId = jobDatas[0].jobId;
+								
+								// fastack it.
+								disquuun.FastAck(new string[]{gotJobId}).Async(
+									(fastAckCommand, fastAckData) => {
+										// fastack succeded or not.
+										
+										fastAckedJobCount = DisquuunDeserializer.FastAck(fastAckData);
+										Assert(1, fastAckedJobCount, "not match.");
+									} 
+								);
+							}
+						);
+					}
+				);
+			}
+		);
+		
+		WaitUntil(() => (fastAckedJobCount == 1), 5);
+		
+		disquuun.Disconnect(true);
 	}
 
     public void _0_1_ConnectionFailedWithNoDisqueServer (Disquuun disquuun) {

@@ -13,15 +13,15 @@ public partial class Tests {
 		
 		var queueId = Guid.NewGuid().ToString();
 		
-		disquuun.AddJob(queueId, new byte[disquuun.BufferSize]).Sync();
+		disquuun.AddJob(queueId, new byte[disquuun.bufferSize]).DEPRICATED_Sync();
 		
-		var result = disquuun.GetJob(new string[]{queueId}).Sync();
+		var result = disquuun.GetJob(new string[]{queueId}).DEPRICATED_Sync();
 		var jobDatas = DisquuunDeserializer.GetJob(result);
 		Assert(1, jobDatas.Length, "not match.");
 		
 		// ack in.
 		var jobIds = jobDatas.Select(job => job.jobId).ToArray();
-		disquuun.FastAck(jobIds).Sync();
+		disquuun.FastAck(jobIds).DEPRICATED_Sync();
 	}
 	
 	public void _4_1_ByfferOverWithMultipleSyncGetJob_Sync (Disquuun disquuun) {
@@ -30,15 +30,15 @@ public partial class Tests {
 		var queueId = Guid.NewGuid().ToString();
 		
 		var addJobCount = 2;
-		for (var i = 0; i < addJobCount; i++) disquuun.AddJob(queueId, new byte[disquuun.BufferSize/addJobCount]).Sync();
+		for (var i = 0; i < addJobCount; i++) disquuun.AddJob(queueId, new byte[disquuun.bufferSize/addJobCount]).DEPRICATED_Sync();
 		
-		var result = disquuun.GetJob(new string[]{queueId}, "COUNT", addJobCount).Sync();
+		var result = disquuun.GetJob(new string[]{queueId}, "COUNT", addJobCount).DEPRICATED_Sync();
 		var jobDatas = DisquuunDeserializer.GetJob(result);
 		Assert(addJobCount, jobDatas.Length, "not match.");
 		
 		// ack in.
 		var jobIds = jobDatas.Select(job => job.jobId).ToArray();
-		disquuun.FastAck(jobIds).Sync();
+		disquuun.FastAck(jobIds).DEPRICATED_Sync();
 	}
 	
 	public void _4_2_ByfferOverWithSokcetOverSyncGetJob_Sync (Disquuun disquuun) {
@@ -47,15 +47,15 @@ public partial class Tests {
 		var queueId = Guid.NewGuid().ToString();
 		
 		var addJobCount = 10001;
-		for (var i = 0; i < addJobCount; i++) disquuun.AddJob(queueId, new byte[100]).Sync();
+		for (var i = 0; i < addJobCount; i++) disquuun.AddJob(queueId, new byte[100]).DEPRICATED_Sync();
 		
-		var result = disquuun.GetJob(new string[]{queueId}, "COUNT", addJobCount).Sync();
+		var result = disquuun.GetJob(new string[]{queueId}, "COUNT", addJobCount).DEPRICATED_Sync();
 		var jobDatas = DisquuunDeserializer.GetJob(result);
 		Assert(addJobCount, jobDatas.Length, "not match.");
 		
 		// ack in.
 		var jobIds = jobDatas.Select(job => job.jobId).ToArray();
-		disquuun.FastAck(jobIds).Sync();
+		disquuun.FastAck(jobIds).DEPRICATED_Sync();
 	}
 	
 	public void _4_3_ByfferOverWithSingleSyncGetJob_Async (Disquuun disquuun) {
@@ -63,7 +63,7 @@ public partial class Tests {
 		
 		var queueId = Guid.NewGuid().ToString();
 		
-		disquuun.AddJob(queueId, new byte[disquuun.BufferSize]).Sync();
+		disquuun.AddJob(queueId, new byte[disquuun.bufferSize]).DEPRICATED_Sync();
 		
 		DisquuunDeserializer.JobData[] jobDatas = new DisquuunDeserializer.JobData[]{};
 		disquuun.GetJob(new string[]{queueId}).Async(
@@ -76,7 +76,7 @@ public partial class Tests {
 		
 		// ack in.
 		var jobIds = jobDatas.Select(job => job.jobId).ToArray();
-		disquuun.FastAck(jobIds).Sync();
+		disquuun.FastAck(jobIds).DEPRICATED_Sync();
 	}
 	
 	public void _4_4_ByfferOverWithMultipleSyncGetJob_Async (Disquuun disquuun) {
@@ -85,7 +85,7 @@ public partial class Tests {
 		var queueId = Guid.NewGuid().ToString();
 		
 		var addJobCount = 2;
-		for (var i = 0; i < addJobCount; i++) disquuun.AddJob(queueId, new byte[disquuun.BufferSize/addJobCount]).Sync();
+		for (var i = 0; i < addJobCount; i++) disquuun.AddJob(queueId, new byte[disquuun.bufferSize/addJobCount]).DEPRICATED_Sync();
 		
 		DisquuunDeserializer.JobData[] jobDatas = new DisquuunDeserializer.JobData[]{};
 		disquuun.GetJob(new string[]{queueId}, "COUNT", addJobCount).Async(
@@ -98,7 +98,7 @@ public partial class Tests {
 		
 		// ack in.
 		var jobIds = jobDatas.Select(job => job.jobId).ToArray();
-		disquuun.FastAck(jobIds).Sync();
+		disquuun.FastAck(jobIds).DEPRICATED_Sync();
 	}
 	
 	public void _4_5_ByfferOverWithSokcetOverSyncGetJob_Async (Disquuun disquuun) {
@@ -107,7 +107,7 @@ public partial class Tests {
 		var queueId = Guid.NewGuid().ToString();
 		
 		var addJobCount = 10001;
-		for (var i = 0; i < addJobCount; i++) disquuun.AddJob(queueId, new byte[100]).Sync();
+		for (var i = 0; i < addJobCount; i++) disquuun.AddJob(queueId, new byte[100]).DEPRICATED_Sync();
 		
 		DisquuunDeserializer.JobData[] jobDatas = new DisquuunDeserializer.JobData[]{};
 		disquuun.GetJob(new string[]{queueId}, "COUNT", addJobCount).Async(
@@ -120,6 +120,6 @@ public partial class Tests {
 		
 		// ack in.
 		var jobIds = jobDatas.Select(job => job.jobId).ToArray();
-		disquuun.FastAck(jobIds).Sync();
+		disquuun.FastAck(jobIds).DEPRICATED_Sync();
 	}
 }

@@ -37,17 +37,17 @@ public partial class Tests {
 				var queueId = Guid.NewGuid().ToString();
 
 				// addjob. add 10bytes job to Disque.
-				disquuun2.AddJob(queueId, new byte[10]).Sync();
+				disquuun2.AddJob(queueId, new byte[10]).DEPRICATED_Sync();
 
 				// getjob. get job from Disque.
-				var result = disquuun2.GetJob(new string[]{queueId}).Sync();
+				var result = disquuun2.GetJob(new string[]{queueId}).DEPRICATED_Sync();
 				var jobDatas = DisquuunDeserializer.GetJob(result);
 
 				Assert(1, jobDatas.Length, "not match.");
 
 				// fastack.
 				var jobId = jobDatas[0].jobId;
-				disquuun2.FastAck(new string[]{jobId}).Sync();
+				disquuun2.FastAck(new string[]{jobId}).DEPRICATED_Sync();
 				
 				overed = true;
 			}
@@ -83,7 +83,7 @@ public partial class Tests {
 	
 	public void _0_2_SyncInfo (Disquuun disquuun) {
 		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
-		var data = disquuun.Info().Sync();
+		var data = disquuun.Info().DEPRICATED_Sync();
 		var infoStr = DisquuunDeserializer.Info(data).rawString;
 		Assert(!string.IsNullOrEmpty(infoStr), "empty.");
 	}
@@ -92,13 +92,13 @@ public partial class Tests {
 		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		{
-			var datas = disquuun.Info().Sync();
+			var datas = disquuun.Info().DEPRICATED_Sync();
 			var infoStr = DisquuunDeserializer.Info(datas).rawString;
 			Assert(!string.IsNullOrEmpty(infoStr), "empty.");
 		}
 		
 		{
-			var datas = disquuun.Info().Sync();
+			var datas = disquuun.Info().DEPRICATED_Sync();
 			var infoStr = DisquuunDeserializer.Info(datas).rawString;
 			Assert(!string.IsNullOrEmpty(infoStr), "empty.");
 		}	

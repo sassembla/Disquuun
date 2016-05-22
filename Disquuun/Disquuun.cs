@@ -1,9 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 
-namespace DisquuunCore {
+namespace DisquuunCore
+{
     public enum DisqueCommand {		
 		ADDJOB,// queue_name job <ms-timeout> [REPLICATE <count>] [DELAY <sec>] [RETRY <sec>] [TTL <sec>] [MAXLEN <count>] [ASYNC]
 		GETJOB,// [NOHANG] [TIMEOUT <ms-timeout>] [COUNT <count>] [WITHCOUNTERS] FROM queue1 queue2 ... queueN
@@ -54,7 +53,7 @@ namespace DisquuunCore {
     public class Disquuun {
 		public readonly string connectionId;
 		
-		public readonly long BufferSize;
+		public readonly long bufferSize;
 		public readonly IPEndPoint endPoint;
 		
 		public ConnectionState connectionState;
@@ -63,7 +62,7 @@ namespace DisquuunCore {
 		private readonly Action<string> ConnectionOpened;
 		private readonly Action<Exception> ConnectionFailed;
 		
-		private List<DisquuunSocket> socketPool;
+		private DisquuunSocket[] socketPool;
 		
 		public enum ConnectionState {
 			OPENED,
@@ -82,7 +81,7 @@ namespace DisquuunCore {
 		) {
 			this.connectionId = Guid.NewGuid().ToString();
 			
-			this.BufferSize = bufferSize;
+			this.bufferSize = bufferSize;
 			this.endPoint = new IPEndPoint(IPAddress.Parse(host), port);
 			
 			this.connectionState = ConnectionState.ALLCLOSED;
@@ -101,19 +100,14 @@ namespace DisquuunCore {
 			if (ConnectionFailed != null) this.ConnectionFailed = ConnectionFailed;
 			else ConnectionFailed = e => {};
 			
-			socketPool = new List<DisquuunSocket>();
-			for (var i = 0; i < maxConnectionCount; i++) {
-				var socketObj = new DisquuunSocket(endPoint, bufferSize, OnSocketOpened, OnSocketConnectionFailed);
-				socketPool.Add(socketObj);
-			}
+			socketPool = new DisquuunSocket[maxConnectionCount];
+			for (var i = 0; i < maxConnectionCount; i++) socketPool[i] = new DisquuunSocket(endPoint, bufferSize, OnSocketOpened, OnSocketConnectionFailed);
 		}
 		
 		private void OnSocketOpened (DisquuunSocket source, string socketId) {
 			var currentState = connectionState;
 			
-			UpdateState();// 開き直す、みたいな動作が発生したときも、openが発生すべきかどうか。うーー、、、ん、、、相手に状態を持たせるのはなあ、、2つ用意する？ 一回しか呼ばれないようにする?
-			// 一回だな。個別のコネクションを足す拡張をする場合、Openedは呼ばれない。
-			
+			UpdateState();
 			if (currentState == ConnectionState.ALLCLOSED && connectionState == ConnectionState.OPENED) {
 				ConnectionOpened(connectionId);
 			} 
@@ -126,9 +120,13 @@ namespace DisquuunCore {
 		
 		public void UpdateState () {
 			lock (socketPool) {
-				var connectionCount = AvailableSockets().Length;
+				var availableSocketCount = 0;
+				for (var i = 0; i < socketPool.Length; i++) {
+					var socket = socketPool[i];
+					if (socket.State() == DisquuunSocket.SocketState.OPENED) availableSocketCount++;
+				}
 				
-				switch (connectionCount) {
+				switch (availableSocketCount) {
 					case 0: {
 						connectionState = ConnectionState.ALLCLOSED;
 						break;
@@ -157,19 +155,18 @@ namespace DisquuunCore {
 			
 		}
 		
-		private DisquuunSocket[] AvailableSockets () {
-			var avaiableSockets = socketPool.Where(socket => socket.State() == DisquuunSocket.SocketState.OPENED).ToArray();
-			if (avaiableSockets.Length == 1) {
-				// 次がない
-			}
-			if (avaiableSockets.Length == 0) {
-				// 一個も無い
-			}
-			return avaiableSockets;
-		}
-		
 		private DisquuunSocket ChooseAvailableSocket () {
-			return AvailableSockets()[0];
+			lock (this) {
+				for (var i = 0; i < socketPool.Length; i++) {
+					var socket = socketPool[i];
+					if (socket.State() == DisquuunSocket.SocketState.OPENED) {
+						socket.SetBusy();
+						return socket;
+					}
+				}
+				
+				return new DisquuunSocket(endPoint, bufferSize);
+			}
 		}
 		
 		
@@ -250,17 +247,77 @@ namespace DisquuunCore {
 			return new DisquuunInput(DisqueCommand.QLEN, bytes, socket);
 		}
 		
-		/*
-			QSTAT,// <queue-name>
-			QPEEK,// <queue-name> <count>
-			ENQUEUE,// <job-id> ... <job-id>
-			DEQUEUE,// <job-id> ... <job-id>
-			DELJOB,// <job-id> ... <job-id>
-			SHOW,// <job-id>
-			QSCAN,// [COUNT <count>] [BUSYLOOP] [MINLEN <len>] [MAXLEN <len>] [IMPORTRATE <rate>]
-			JSCAN,// [<cursor>] [COUNT <count>] [BUSYLOOP] [QUEUE <queue>] [STATE <state1> STATE <state2> ... STATE <stateN>] [REPLY all|id]
-			PAUSE,// <queue-name> option1 [option2 ... optionN]
-		*/
+		public DisquuunInput Qstat (string queueId) {
+			var bytes = DisquuunAPI.Qstat(queueId);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.QSTAT, bytes, socket);
+		}
+		
+		public DisquuunInput Qpeek (string queueId, int count) {
+			var bytes = DisquuunAPI.Qpeek(queueId, count);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.QPEEK, bytes, socket);
+		}
+		
+		public DisquuunInput Enqueue (params string[] jobIds) {
+			var bytes = DisquuunAPI.Enqueue(jobIds);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.ENQUEUE, bytes, socket);
+		}
+		
+		public DisquuunInput Dequeue (params string[] jobIds) {
+			var bytes = DisquuunAPI.Dequeue(jobIds);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.DEQUEUE, bytes, socket);
+		}
+		
+		public DisquuunInput DelJob (params string[] jobIds) {
+			var bytes = DisquuunAPI.DelJob(jobIds);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.DELJOB, bytes, socket);
+		}
+		
+		public DisquuunInput Show (string jobId) {
+			var bytes = DisquuunAPI.Show(jobId);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.SHOW, bytes, socket);
+		}
+		
+		public DisquuunInput Qscan (params object[] args) {
+			var bytes = DisquuunAPI.Qscan(args);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.QSCAN, bytes, socket);
+		}
+		
+		public DisquuunInput Jscan (int cursor=0, params object[] args) {
+			var bytes = DisquuunAPI.Jscan(cursor, args);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.JSCAN, bytes, socket);
+		}
+		
+		public DisquuunInput Pause (string queueId, string option1, params string[] options) {
+			var bytes = DisquuunAPI.Pause(queueId, option1, options);
+			
+			var socket = ChooseAvailableSocket();
+			
+			return new DisquuunInput(DisqueCommand.PAUSE, bytes, socket);
+		}
 		
 		
 		

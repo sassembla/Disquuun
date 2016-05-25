@@ -105,12 +105,16 @@ namespace DisquuunCore
 		}
 		
 		private void OnSocketOpened (DisquuunSocket source, string socketId) {
-			var currentState = connectionState;
-			
-			UpdateState();
-			if (currentState == ConnectionState.ALLCLOSED && connectionState == ConnectionState.OPENED) {
-				ConnectionOpened(connectionId);
-			} 
+			lock (socketPool) {
+				var availableSocketCount = 0;
+				for (var i = 0; i < socketPool.Length; i++) {
+					var socket = socketPool[i];
+					if (socket == null) return;
+					if (socket.State() == DisquuunSocket.SocketState.OPENED) availableSocketCount++;
+				}
+				
+				if (availableSocketCount == socketPool.Length) ConnectionOpened(connectionId);
+			}
 		}
 		
 		private void OnSocketConnectionFailed (DisquuunSocket source, Exception e) {
@@ -151,8 +155,6 @@ namespace DisquuunCore
 			lock (socketPool) {
 				foreach (var socket in socketPool) socket.Disconnect(force);
 			}
-			
-			
 		}
 		
 		private DisquuunSocket ChooseAvailableSocket () {
@@ -322,7 +324,7 @@ namespace DisquuunCore
 		
 		
 		public static void Log (string message) {
-			TestLogger.Log(message);
+			// TestLogger.Log(message);
 		}
 	}
 }

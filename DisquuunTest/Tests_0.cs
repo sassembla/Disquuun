@@ -99,6 +99,21 @@ public partial class Tests {
 		
 		disquuun.Disconnect(true);
 	}
+	
+	public void _0_0_4_ConnectedShouldCallOnce (Disquuun disquuun) {
+		int connectedCount = 0;
+		
+		disquuun = new Disquuun("127.0.0.1", 7711, 1024, 100,
+			disquuunId => {
+				Assert(0, connectedCount, "not match.");
+				connectedCount++;
+			}
+		);
+		
+		WaitUntil(() => (connectedCount == 1), 5);
+		
+		disquuun.Disconnect(true);
+	}
 
     public void _0_1_ConnectionFailedWithNoDisqueServer (Disquuun disquuun) {
 		

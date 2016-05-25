@@ -57,81 +57,81 @@ namespace DisquuunCore {
 			newArgs[0] = timeout;
 			for (var i = 1; i < newArgs.Length; i++) newArgs[i] = args[i-1];
 			
-			var byteBuffer = new MemoryStream();
-
-			var contentCount = 1;// count of command.
-			
-			if (!string.IsNullOrEmpty(queueName)) {
-				contentCount++;
-			}
-
-			if (0 < data.Length) {
-				contentCount++;
-			}
-
-			if (0 < newArgs.Length) {
-				contentCount = contentCount + newArgs.Length;
-			}
-
-			// "*" + contentCount.ToString() + "\r\n"
-			{
-				var contentCountBytes = Encoding.UTF8.GetBytes(contentCount.ToString());
+			using (var byteBuffer = new MemoryStream()) {
+				var contentCount = 1;// count of command.
 				
-				byteBuffer.Write(BytesMultiBulk, 0, BytesMultiBulk.Length);
-				byteBuffer.Write(contentCountBytes, 0, contentCountBytes.Length);
-				byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
-			}
+				if (!string.IsNullOrEmpty(queueName)) {
+					contentCount++;
+				}
 
-			// "$" + cmd.Length + "\r\n" + cmd + "\r\n"
-			{
-				var commandBytes = Encoding.UTF8.GetBytes(DisqueCommand.ADDJOB.ToString());
-				var commandCountBytes = Encoding.UTF8.GetBytes(DisqueCommand.ADDJOB.ToString().Length.ToString());
-			
-				byteBuffer.Write(BytesBulk, 0, BytesBulk.Length);
-				byteBuffer.Write(commandCountBytes, 0, commandCountBytes.Length);
-				byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
-				byteBuffer.Write(commandBytes, 0, commandBytes.Length);
-				byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
-			}
+				if (0 < data.Length) {
+					contentCount++;
+				}
 
-			// "$" + queueId.Length + "\r\n" + queueId + "\r\n"
-			if (!string.IsNullOrEmpty(queueName)) {
-				var queueIdBytes = Encoding.UTF8.GetBytes(queueName);
-				var queueIdCountBytes = Encoding.UTF8.GetBytes(queueName.Length.ToString());
-				
-				byteBuffer.Write(BytesBulk, 0, BytesBulk.Length);
-				byteBuffer.Write(queueIdCountBytes, 0, queueIdCountBytes.Length);
-				byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
-				byteBuffer.Write(queueIdBytes, 0, queueIdBytes.Length);
-				byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
-			}
+				if (0 < newArgs.Length) {
+					contentCount = contentCount + newArgs.Length;
+				}
 
-			// "$" + data.Length + "\r\n" + data + "\r\n"
-			if (0 < data.Length) {
-				var dataCountBytes = Encoding.UTF8.GetBytes(data.Length.ToString());
-				
-				byteBuffer.Write(BytesBulk, 0, BytesBulk.Length);
-				byteBuffer.Write(dataCountBytes, 0, dataCountBytes.Length);
-				byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
-				byteBuffer.Write(data, 0, data.Length);
-				byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
-			}
+				// "*" + contentCount.ToString() + "\r\n"
+				{
+					var contentCountBytes = Encoding.UTF8.GetBytes(contentCount.ToString());
+					
+					byteBuffer.Write(BytesMultiBulk, 0, BytesMultiBulk.Length);
+					byteBuffer.Write(contentCountBytes, 0, contentCountBytes.Length);
+					byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
+				}
 
-			// "$" + option.Length + "\r\n" + option + "\r\n"
-			if (0 < newArgs.Length) {
-				foreach (var option in newArgs) {
-					var optionBytes = Encoding.UTF8.GetBytes(option.ToString());
-					var optionCountBytes = Encoding.UTF8.GetBytes(newArgs.Length.ToString());
+				// "$" + cmd.Length + "\r\n" + cmd + "\r\n"
+				{
+					var commandBytes = Encoding.UTF8.GetBytes(DisqueCommand.ADDJOB.ToString());
+					var commandCountBytes = Encoding.UTF8.GetBytes(DisqueCommand.ADDJOB.ToString().Length.ToString());
 				
 					byteBuffer.Write(BytesBulk, 0, BytesBulk.Length);
-					byteBuffer.Write(optionCountBytes, 0, optionCountBytes.Length);
+					byteBuffer.Write(commandCountBytes, 0, commandCountBytes.Length);
 					byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
-					byteBuffer.Write(optionBytes, 0, optionBytes.Length);
+					byteBuffer.Write(commandBytes, 0, commandBytes.Length);
 					byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
-				}	
+				}
+
+				// "$" + queueId.Length + "\r\n" + queueId + "\r\n"
+				if (!string.IsNullOrEmpty(queueName)) {
+					var queueIdBytes = Encoding.UTF8.GetBytes(queueName);
+					var queueIdCountBytes = Encoding.UTF8.GetBytes(queueName.Length.ToString());
+					
+					byteBuffer.Write(BytesBulk, 0, BytesBulk.Length);
+					byteBuffer.Write(queueIdCountBytes, 0, queueIdCountBytes.Length);
+					byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
+					byteBuffer.Write(queueIdBytes, 0, queueIdBytes.Length);
+					byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
+				}
+
+				// "$" + data.Length + "\r\n" + data + "\r\n"
+				if (0 < data.Length) {
+					var dataCountBytes = Encoding.UTF8.GetBytes(data.Length.ToString());
+					
+					byteBuffer.Write(BytesBulk, 0, BytesBulk.Length);
+					byteBuffer.Write(dataCountBytes, 0, dataCountBytes.Length);
+					byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
+					byteBuffer.Write(data, 0, data.Length);
+					byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
+				}
+
+				// "$" + option.Length + "\r\n" + option + "\r\n"
+				if (0 < newArgs.Length) {
+					foreach (var option in newArgs) {
+						var optionBytes = Encoding.UTF8.GetBytes(option.ToString());
+						var optionCountBytes = Encoding.UTF8.GetBytes(newArgs.Length.ToString());
+					
+						byteBuffer.Write(BytesBulk, 0, BytesBulk.Length);
+						byteBuffer.Write(optionCountBytes, 0, optionCountBytes.Length);
+						byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
+						byteBuffer.Write(optionBytes, 0, optionBytes.Length);
+						byteBuffer.Write(BytesCRLF, 0, BytesCRLF.Length);
+					}	
+				}
+				
+				return byteBuffer.ToArray();
 			}
-			
-			return byteBuffer.ToArray();
 		}
 		
 		public static byte[] GetJob (string[] queueIds, object[] args) {
@@ -422,7 +422,7 @@ namespace DisquuunCore {
 										continue;
 									}
 									
-									TestLogger.Log("そのうち対応する、countersとかオプションつけたやつ。");
+									// TestLogger.Log("そのうち対応する、countersとかオプションつけたやつ。");
 									// using additional info flag for getjob... not yet applied.
 									// if (itemCount == 7) {
 									// 	byte[] nackCountBytes;

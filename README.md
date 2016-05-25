@@ -1,7 +1,7 @@
 #Disquuun
 
 C# Disque client.  
-ver 0.5.0 (essential Disque commands are supported.)
+ver 0.5.1 (essential Disque commands are supported.)
 
 ##motivation
 Lightweight, async, independent. not depends on any Redis code. 

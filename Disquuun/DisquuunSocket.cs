@@ -78,6 +78,7 @@ namespace DisquuunCore {
 			this.socketId = Guid.NewGuid().ToString();
 			
 			var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+			clientSocket.NoDelay = true;
 			
 			var connectArgs = new SocketAsyncEventArgs();
 			connectArgs.AcceptSocket = clientSocket;
@@ -106,6 +107,7 @@ namespace DisquuunCore {
 			this.SocketClosed = SocketClosed;
 			
 			var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+			clientSocket.NoDelay = true;
 			
 			var connectArgs = new SocketAsyncEventArgs();
 			connectArgs.AcceptSocket = clientSocket;
@@ -144,7 +146,7 @@ namespace DisquuunCore {
 		public DisquuunResult[] DEPRECATED_Sync (DisqueCommand command, byte[] data) {
 			socketToken.socket.Send(data);
 			
-			// TestLogger.Log("send失敗とかもありえるはず。");
+			// Disquuun.Log("send失敗とかもありえるはず。");
 			
 			var currentLength = 0;
 			var scanResult = new DisquuunAPI.ScanResult(false);
@@ -158,10 +160,10 @@ namespace DisquuunCore {
 				var readableLength = currentLength + available;
 				{
 					if (socketToken.receiveBuffer.Length < readableLength) {
-						TestLogger.Log("サイズオーバーしてる " + socketToken.receiveBuffer.Length + " vs:" + readableLength);
+						// Disquuun.Log("サイズオーバーしてる " + socketToken.receiveBuffer.Length + " vs:" + readableLength);
 						Array.Resize(ref socketToken.receiveBuffer, readableLength);
 					} else {
-						// TestLogger.Log("まだサイズオーバーしてない " + socketToken.receiveBuffer.Length + " vs:" + readableLength + " が、読み込みの過程でサイズオーバーしそう。");
+						// Disquuun.Log("まだサイズオーバーしてない " + socketToken.receiveBuffer.Length + " vs:" + readableLength + " が、読み込みの過程でサイズオーバーしそう。");
 					}
 				}
 				
@@ -175,7 +177,7 @@ namespace DisquuunCore {
 				// continue reading data from socket.
 				// if need, prepare for next 1 byte.
 				if (socketToken.receiveBuffer.Length == readableLength) {
-					TestLogger.Log("サイズオーバーの拡張をしてて、さらにもう1byte以上読む必要がある。");
+					// Disquuun.Log("サイズオーバーの拡張をしてて、さらにもう1byte以上読む必要がある。");
 					Array.Resize(ref socketToken.receiveBuffer, socketToken.receiveBuffer.Length + 1);
 				}
 			}
@@ -252,7 +254,6 @@ namespace DisquuunCore {
 		}
 		
 		private void StartCloseAsync () {
-			// 
 			var closeEventArgs = new SocketAsyncEventArgs();
 			closeEventArgs.UserToken = socketToken;
 			closeEventArgs.AcceptSocket = socketToken.socket;
@@ -287,6 +288,7 @@ namespace DisquuunCore {
 		}
 		
 		private void OnClosed (object unused, SocketAsyncEventArgs args) {
+			try {
 			var token = (SocketToken)args.UserToken;
 			switch (token.socketState) {
 				case SocketState.CLOSED: {
@@ -297,6 +299,11 @@ namespace DisquuunCore {
 					token.socketState = SocketState.CLOSED;
 					break;
 				}
+			}
+			} catch (Exception e) {
+				Disquuun.Log("close e:" + e);
+				var token = (SocketToken)args.UserToken;
+				token.socketState = SocketState.CLOSED;
 			}
 		}
 		
@@ -410,7 +417,7 @@ namespace DisquuunCore {
 					var nextAdditionalBytesLength = token.socket.Available;
 					
 					if (token.readableDataLength == token.receiveBuffer.Length) {
-						TestLogger.Log("次のデータが来るのが確定していて、かつバッファサイズが足りない。");
+						// Disquuun.Log("次のデータが来るのが確定していて、かつバッファサイズが足りない。");
 						Array.Resize(ref token.receiveBuffer, token.receiveArgs.Buffer.Length + nextAdditionalBytesLength);
 					}
 					
@@ -425,7 +432,9 @@ namespace DisquuunCore {
 		public void Disconnect (bool force=false) {
 			if (force) {
 				try {
+					socketToken.socketState = SocketState.CLOSING;
 					socketToken.socket.Close();
+					socketToken.socketState = SocketState.CLOSED;
 				} catch (Exception e) {
 					Disquuun.Log("e:" + e);
 				}

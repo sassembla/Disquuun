@@ -398,7 +398,9 @@ namespace DisquuunCore {
 									
 									
 									// jobData
-									if (itemCount == 3) {
+									byte[] dataBytes;
+									
+									{
 										// $ count.
 										var lineEndCursor3 = ReadLine(sourceBuffer, cursor, length);
 										if (lineEndCursor3 == -1) return new ScanResult(false);
@@ -413,72 +415,79 @@ namespace DisquuunCore {
 										
 										// $ bulk.
 										if (ShortageOfReadableLength(sourceBuffer, cursor, strNum)) return new ScanResult(false);
-										var dataBytes = new byte[strNum];
+										dataBytes = new byte[strNum];
 										Array.Copy(sourceBuffer, cursor, dataBytes, 0, strNum);
 										
 										cursor = cursor + strNum + 2;// CR + LF
-										
+									}
+									
+									// no withcounters response.
+									if (itemCount == 3) {	
 										jobDatas[i] = new DisquuunResult(jobIdBytes, dataBytes);
 										continue;
 									}
 									
-									// TestLogger.Log("そのうち対応する、countersとかオプションつけたやつ。");
-									// using additional info flag for getjob... not yet applied.
-									// if (itemCount == 7) {
-									// 	byte[] nackCountBytes;
-									// 	{
-									// 		// $
-									// 		var lineEndCursor3 = ReadLine2(sourceBuffer, cursor, length);
-									// 		cursor = cursor + 1;// add header byte size = 1.
+									// withcounters response.
+									if (itemCount == 7) {
+										byte[] nackCountBytes;
+										{
+											// $
+											var lineEndCursor3 = ReadLine(sourceBuffer, cursor, length);
+											if (lineEndCursor3 == -1) return new ScanResult(false);
 											
-									// 		var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
-									// 		var strNum = Convert.ToInt32(countStr);
-									// 		// Disquuun.Log("data strNum:" + strNum);
+											cursor = cursor + 1;// add header byte size = 1.
 											
-									// 		cursor = lineEndCursor3 + 2;// CR + LF
+											var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
+											var strNum = Convert.ToInt32(countStr);
+											// Disquuun.Log("data strNum:" + strNum);
 											
-									// 		// ignore params. 
+											cursor = lineEndCursor3 + 2;// CR + LF
+											
+											// ignore params. 
 										
-									// 		cursor = cursor + strNum + 2;// CR + LF
+											cursor = cursor + strNum + 2;// CR + LF
 										
-									// 		// :
-									// 		var lineEndCursor4 = ReadLine2(sourceBuffer, cursor, length);
-									// 		cursor = cursor + 1;// add header byte size = 1.
+											// :
+											var lineEndCursor4 = ReadLine(sourceBuffer, cursor, length);
+											if (lineEndCursor4 == -1) return new ScanResult(false);
+											cursor = cursor + 1;// add header byte size = 1.
 											
-									// 		nackCountBytes = new byte[lineEndCursor4 - cursor];
-									// 		Array.Copy(sourceBuffer, cursor, nackCountBytes, 0, nackCountBytes.Length);
+											nackCountBytes = new byte[lineEndCursor4 - cursor];
+											Array.Copy(sourceBuffer, cursor, nackCountBytes, 0, nackCountBytes.Length);
 											
-									// 		cursor = lineEndCursor4 + 2;// CR + LF
-									// 	}
+											cursor = lineEndCursor4 + 2;// CR + LF
+										}
 										
-									// 	byte[] additionalDeliveriesCountBytes;
-									// 	{
-									// 		// $
-									// 		var lineEndCursor3 = ReadLine2(sourceBuffer, cursor, length);
-									// 		cursor = cursor + 1;// add header byte size = 1.
+										byte[] additionalDeliveriesCountBytes;
+										{
+											// $
+											var lineEndCursor3 = ReadLine(sourceBuffer, cursor, length);
+											if (lineEndCursor3 == -1) return new ScanResult(false);
+											cursor = cursor + 1;// add header byte size = 1.
 											
-									// 		var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
-									// 		var strNum = Convert.ToInt32(countStr);
-									// 		// Disquuun.Log("data strNum:" + strNum);
+											var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
+											var strNum = Convert.ToInt32(countStr);
+											// Disquuun.Log("data strNum:" + strNum);
 											
-									// 		cursor = lineEndCursor3 + 2;// CR + LF
+											cursor = lineEndCursor3 + 2;// CR + LF
 											
-									// 		// ignore params. 
+											// ignore params. 
 										
-									// 		cursor = cursor + strNum + 2;// CR + LF
+											cursor = cursor + strNum + 2;// CR + LF
 										
-									// 		// :
-									// 		var lineEndCursor4 = ReadLine2(sourceBuffer, cursor, length);
-									// 		cursor = cursor + 1;// add header byte size = 1.
+											// :
+											var lineEndCursor4 = ReadLine(sourceBuffer, cursor, length);
+											if (lineEndCursor4 == -1) return new ScanResult(false);
+											cursor = cursor + 1;// add header byte size = 1.
 											
-									// 		additionalDeliveriesCountBytes = new byte[lineEndCursor4 - cursor];
-									// 		Array.Copy(sourceBuffer, cursor, additionalDeliveriesCountBytes, 0, additionalDeliveriesCountBytes.Length);
+											additionalDeliveriesCountBytes = new byte[lineEndCursor4 - cursor];
+											Array.Copy(sourceBuffer, cursor, additionalDeliveriesCountBytes, 0, additionalDeliveriesCountBytes.Length);
 											
-									// 		jobDatas[i] = new DisquuunResult(jobIdBytes, dataBytes, nackCountBytes, additionalDeliveriesCountBytes);
+											jobDatas[i] = new DisquuunResult(jobIdBytes, dataBytes, nackCountBytes, additionalDeliveriesCountBytes);
 											
-									// 		cursor = lineEndCursor4 + 2;// CR + LF
-									// 	}
-									// }
+											cursor = lineEndCursor4 + 2;// CR + LF
+										}
+									}
 								}
 							}
 							
@@ -791,9 +800,101 @@ namespace DisquuunCore {
 					}
 					break;
 				}
+				case DisqueCommand.QSTAT: {
+					// * count of item.
+					var bulkCountNum = 0;
+					{
+						var lineEndCursor = ReadLine(sourceBuffer, cursor, length);
+						if (lineEndCursor == -1) return new ScanResult(false);
+						
+						cursor = cursor + 1;// add header byte size = 1.
+						
+						var bulkCountStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
+						bulkCountNum = Convert.ToInt32(bulkCountStr);
+						
+						cursor = lineEndCursor + 2;// CR + LF
+					}
+					
+					// items are key & value pair(maybe "import-from" will not match..)
+					var itemCount = bulkCountNum / 2;
+					
+					var results = new DisquuunResult[itemCount];
+					for (var i = 0; i < itemCount; i++) {
+						byte[] keyBytes = null;
+						{// key ($)
+							var lineEndCursor2 = ReadLine(sourceBuffer, cursor, length);
+							if (lineEndCursor2 == -1) return new ScanResult(false);
+							cursor = cursor + 1;// add header byte size = 1.
+							
+							var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor2 - cursor);
+							var strNum = Convert.ToInt32(countStr);
+							
+							cursor = lineEndCursor2 + 2;// CR + LF
+							
+							if (ShortageOfReadableLength(sourceBuffer, cursor, strNum)) return new ScanResult(false);
+							keyBytes = new byte[strNum];
+							Array.Copy(sourceBuffer, cursor, keyBytes, 0, strNum);
+							
+							cursor = cursor + strNum + 2;// CR + LF
+						}
+												
+						{// value ($ or * or :)
+							byte[] valBytes = null;
+							
+							var type = sourceBuffer[cursor];
+							/*
+								check next parameter = value parameter's type.
+								$ or * or : is expected.
+							*/
+							switch (type){
+								case ByteBulk: {
+									// $ have string value.
+									var lineEndCursor3 = ReadLine(sourceBuffer, cursor, length);
+									if (lineEndCursor3 == -1) return new ScanResult(false);
+									
+									cursor = cursor + 1;// add header byte size = 1.
+							
+									var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
+									var strNum = Convert.ToInt32(countStr);
+									
+									cursor = lineEndCursor3 + 2;// CR + LF
+									
+									if (ShortageOfReadableLength(sourceBuffer, cursor, strNum)) return new ScanResult(false);
+									valBytes = new byte[strNum];
+									Array.Copy(sourceBuffer, cursor, valBytes, 0, strNum);
+									
+									cursor = cursor + strNum + 2;// CR + LF
+									break;	
+								}
+								case ByteMultiBulk:
+								case ByteInt: {
+									// * or : have number value.
+									var lineEndCursor3 = ReadLine(sourceBuffer, cursor, length);
+									if (lineEndCursor3 == -1) return new ScanResult(false);
+									
+									cursor = cursor + 1;// add header byte size = 1.
+							
+									var countStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor3 - cursor);
+									var strNum = countStr.Length;
+									
+									valBytes = new byte[strNum];
+									Array.Copy(sourceBuffer, cursor, valBytes, 0, strNum);
+										
+									cursor = lineEndCursor3 + 2;// CR + LF
+									break;
+								}
+								default: {
+									throw new Exception("unexpected type:" + type);
+								}
+							}
+							results[i] = new DisquuunResult(keyBytes, valBytes);
+						}
+					}
+					return new ScanResult(true, results);
+				}
 				default: {
 					Disquuun.Log("command:" + command);
-					break;
+					throw new Exception("not yet supported." + command + " data:" + Encoding.UTF8.GetString(sourceBuffer, cursor, (int)length));
 				}
 			}
 			return new ScanResult(false);

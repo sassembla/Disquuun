@@ -83,6 +83,21 @@ public partial class Tests {
 		Assert(0, jobDatas.Length, "not match.");
 	}
 	
+	public void _1_1_4_GetJobWithCounters_Sync (Disquuun disquuun) {
+		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		
+		var queueId = Guid.NewGuid().ToString();
+		
+		disquuun.AddJob(queueId, new byte[100]).DEPRICATED_Sync();
+		
+		var result = disquuun.GetJob(new string[]{queueId}, "withcounters").DEPRICATED_Sync();
+		var jobDatas = DisquuunDeserializer.GetJob(result);
+		var ackCount = jobDatas[0].additionalDeliveriesCount;
+		Assert(0, ackCount, "not match.");
+		
+		disquuun.FastAck(new string[]{jobDatas[0].jobId}).DEPRICATED_Sync();
+	}
+	
 	public void _1_2_AckJob_Sync (Disquuun disquuun) {
 		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
@@ -171,20 +186,21 @@ public partial class Tests {
 		var qlen = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
 		Assert(1, qlen, "not match.");
 		
-		var result = disquuun.FastAck(new string[]{jobId}).DEPRICATED_Sync();
-		var ackCount = DisquuunDeserializer.FastAck(result);
+		disquuun.FastAck(new string[]{jobId}).DEPRICATED_Sync();
 	}
 	
 	public void _1_9_Qstat_Sync (Disquuun disquuun) {
-		Disquuun.Log("_1_9_Qstat_Sync not yet applied");
-		// <queue-name>
-		
 		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		var queueId = Guid.NewGuid().ToString();
+		var jobId = DisquuunDeserializer.AddJob(
+			disquuun.AddJob(queueId, new byte[10]).DEPRICATED_Sync()
+		);
 		
-		// var data = disquuun.Qstat().DEPRICATED_Sync();
-		// var infoResult = DisquuunDeserializer.Info(infoData);
+		var data = disquuun.Qstat(queueId).DEPRICATED_Sync();
+		var qstatData = DisquuunDeserializer.Qstat(data);
+		Assert(1, qstatData.len, "not match.");
 		
-		// Assert(0, infoResult.jobs.registered_jobs, "not match.");
+		disquuun.FastAck(new string[]{jobId}).DEPRICATED_Sync();
 	}
 	
 	

@@ -46,12 +46,13 @@ public partial class Tests {
 		tests.Add(_1_1_3_GetJobWithNoHang_Sync);
 		tests.Add(_1_2_AckJob_Sync);
 		tests.Add(_1_3_Fastack_Sync);
+		tests.Add(_1_1_4_GetJobWithCounters_Sync);
 		// tests.Add(_1_4_Working_Sync);
 		// tests.Add(_1_5_Nack_Sync);
 		tests.Add(_1_6_Info_Sync);
 		tests.Add(_1_7_Hello_Sync);
 		tests.Add(_1_8_Qlen_Sync);
-		// tests.Add(_1_9_Qstat_Sync);
+		tests.Add(_1_9_Qstat_Sync);
 		// tests.Add(_1_10_Qpeek_Sync);
 		// tests.Add(_1_11_Enqueue_Sync);
 		// tests.Add(_1_12_Dequeue_Sync);
@@ -67,6 +68,7 @@ public partial class Tests {
 		tests.Add(_2_1_1_GetJobWithCount_Async);
 		tests.Add(_2_1_2_GetJobFromMultiQueue_Async);
 		tests.Add(_2_1_3_GetJobWithNoHang_Async);
+		tests.Add(_2_1_4_GetJobWithCounters_Async);
 		tests.Add(_2_2_AckJob_Async);
 		tests.Add(_2_3_Fastack_Async);
 		// tests.Add(_2_4_Working_Async);
@@ -74,7 +76,7 @@ public partial class Tests {
 		tests.Add(_2_6_Info_Async);
 		tests.Add(_2_7_Hello_Async);
 		tests.Add(_2_8_Qlen_Async);
-		// tests.Add(_2_9_Qstat_Async);
+		tests.Add(_2_9_Qstat_Async);
 		// tests.Add(_2_10_Qpeek_Async);
 		// tests.Add(_2_11_Enqueue_Async);
 		// tests.Add(_2_12_Dequeue_Async);
@@ -97,7 +99,7 @@ public partial class Tests {
 		tests.Add(_4_5_ByfferOverWithSokcetOverSyncGetJob_Async);
 		
 		// error handling.
-		// tests.Add(_5_0_Error)// connect時に出るエラー、接続できないとかその辺のハンドリング
+		// tests.Add(_5_0_Error)// connect時に出るエラー、接続できないとか、あとjobの失敗時のハンドリング、ハングしないケースとかいっぱいある。
 		
 		// adding async request over busy-socket num.
 		tests.Add(_6_0_ExceededSocketNo3In2);
@@ -106,6 +108,7 @@ public partial class Tests {
 		// benchmarks.
 		tests.Add(_7_0_AddJob1000);
 		tests.Add(_7_1_GetJob1000);
+		
 		
 		TestLogger.Log("tests started.");
 		

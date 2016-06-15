@@ -22,6 +22,7 @@ namespace DisquuunCore.Deserialize {
 			public JobData (DisquuunResult dataSourceBytes) {
 				this.jobId = Encoding.UTF8.GetString(dataSourceBytes.bytesArray[0]);
 				this.jobData = dataSourceBytes.bytesArray[1];
+				
 				if (dataSourceBytes.bytesArray.Length < 3) {
 					nackCount = -1;
 					additionalDeliveriesCount = -1;
@@ -530,7 +531,72 @@ namespace DisquuunCore.Deserialize {
 			return Convert.ToInt32(qLenStr);
 		}
 		
-// QSTAT,// <queue-name>
+		public class QstatData {
+			public readonly string name;
+			public readonly int len;	
+			public readonly int age;
+			public readonly int idle;
+			public readonly int blocked;
+			public readonly int import_from;
+			public readonly int import_rate;
+			public readonly int jobs_in;
+			public readonly int jobs_out;
+			public readonly string pause;
+			
+			public QstatData (DisquuunResult[] data) {
+				foreach (var keyValue in data) {
+					var key = Encoding.UTF8.GetString(keyValue.bytesArray[0]);
+					var strVal = Encoding.UTF8.GetString(keyValue.bytesArray[1]);
+					switch (key) {
+						case "name": {
+							this.name = strVal;
+							break;
+						}
+						case "len": {
+							this.len = Convert.ToInt32(strVal);
+							break;
+						}
+						case "age": {
+							this.age = Convert.ToInt32(strVal);
+							break;
+						}
+						case "idle": {
+							this.idle = Convert.ToInt32(strVal);
+							break;
+						}
+						case "blocked": {
+							this.blocked = Convert.ToInt32(strVal);
+							break;
+						}
+						case "import_from": {
+							this.import_from = Convert.ToInt32(strVal);
+							break;
+						}
+						case "import_rate": {
+							this.import_rate = Convert.ToInt32(strVal);
+							break;
+						}
+						case "jobs_in": {
+							this.jobs_in = Convert.ToInt32(strVal);
+							break;
+						}
+						case "jobs_out": {
+							this.jobs_out = Convert.ToInt32(strVal);
+							break;
+						}
+						case "pause": {
+							this.pause = strVal;
+							break;
+						}
+					}
+				}
+			}
+		}
+		
+		public static QstatData Qstat (DisquuunResult[] data) {
+			return new QstatData(data);
+		}
+		
 // QPEEK,// <queue-name> <count>
 // ENQUEUE,// <job-id> ... <job-id>
 // DEQUEUE,// <job-id> ... <job-id>

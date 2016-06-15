@@ -110,6 +110,26 @@ public partial class Tests {
 		WaitUntil(() => received, 5);
 	}
 	
+	public void _2_1_4_GetJobWithCounters_Async (Disquuun disquuun) {
+		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		
+		var queueId = Guid.NewGuid().ToString();
+		
+		disquuun.AddJob(queueId, new byte[100]).DEPRICATED_Sync();
+		
+		var ackCount = -1;
+		
+		disquuun.GetJob(new string[]{queueId}, "withcounters").Async(
+			(command, result) => {
+				var jobDatas = DisquuunDeserializer.GetJob(result);
+				ackCount = jobDatas[0].additionalDeliveriesCount;
+				disquuun.FastAck(new string[]{jobDatas[0].jobId}).DEPRICATED_Sync();
+			}
+		);
+		
+		WaitUntil(() => (ackCount == 0), 5);
+	}
+	
 	public void _2_2_AckJob_Async (Disquuun disquuun) {
 		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
@@ -228,15 +248,20 @@ public partial class Tests {
 	}
 	
 	public void _2_9_Qstat_Async (Disquuun disquuun) {
-		Disquuun.Log("_1_9_Qstat_Async not yet applied");
-		// <queue-name>
+		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		var queueId = Guid.NewGuid().ToString();
+		var jobId = DisquuunDeserializer.AddJob(disquuun.AddJob(queueId, new byte[10]).DEPRICATED_Sync());
 		
-		// WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		var qstatLen = 0;
+		disquuun.Qstat(queueId).Async(
+			(command, data) => {
+				qstatLen = DisquuunDeserializer.Qstat(data).len;
+			}
+		);
 		
-		// var infoData = disquuun.Info().DEPRICATED_Sync();
-		// var infoResult = DisquuunDeserializer.Info(infoData);
+		WaitUntil(() => (qstatLen == 1), 5);
 		
-		// Assert(0, infoResult.jobs.registered_jobs, "not match.");
+		disquuun.FastAck(new string[]{jobId}).DEPRICATED_Sync();
 	}
 	
 	

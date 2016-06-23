@@ -15,7 +15,7 @@ public partial class Tests {
 	
 	public void _0_0_1_WaitOnOpen2Connection (Disquuun disquuun) {
 		var conId = string.Empty;
-		var disquuun2 = new Disquuun("127.0.0.1", 7711, 1, 1, 
+		var disquuun2 = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1, 1, 
 			connectionId => {
 				conId = connectionId;
 			},
@@ -30,7 +30,7 @@ public partial class Tests {
 	
 	public void _0_0_2_ReadmeSampleSync (Disquuun disquuun) {
 		bool overed = false;
-		disquuun = new Disquuun("127.0.0.1", 7711, 1024, 1,
+		disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 1,
 			disquuunId => {
 				var queueId = Guid.NewGuid().ToString();
 
@@ -59,7 +59,7 @@ public partial class Tests {
 	public void _0_0_3_ReadmeSampleAsync (Disquuun disquuun) {
 		int fastAckedJobCount = 0;
 		
-		disquuun = new Disquuun("127.0.0.1", 7711, 1024, 2,
+		disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 2,
 			disquuunId => {
 				var queueId = Guid.NewGuid().ToString();
 
@@ -103,7 +103,7 @@ public partial class Tests {
 	public void _0_0_4_ConnectedShouldCallOnce (Disquuun disquuun) {
 		int connectedCount = 0;
 		
-		disquuun = new Disquuun("127.0.0.1", 7711, 1024, 100,
+		disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 100,
 			disquuunId => {
 				Assert(0, connectedCount, "not match.");
 				connectedCount++;
@@ -124,7 +124,7 @@ public partial class Tests {
 			// TestLogger.Log("e:" + e);
 		};
 		
-		var disquuun2 = new Disquuun("127.0.0.1", 8888, 1024, 1, 
+		var disquuun2 = new Disquuun(DisquuunTests.TestDisqueHostStr, 8888, 1024, 1, 
 			conId => {},
 			e2 => {
 				// set error to param,
@@ -219,6 +219,4 @@ public partial class Tests {
 		
 		WaitUntil(() => (infos.Count == 100), 5);		
 	}
-	
-	
 }

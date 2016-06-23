@@ -16,7 +16,7 @@ public partial class Tests {
 		var count = 1000;
 		
 		var connectedCount = 0;
-		disquuun = new Disquuun("127.0.0.1", 7711, 1024, 10,
+		disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
 			disquuunId => {
 				connectedCount++;
 			}
@@ -69,7 +69,7 @@ public partial class Tests {
 		var count = 1000;
 		
 		var connectedCount = 0;
-		disquuun = new Disquuun("127.0.0.1", 7711, 1024, 10,
+		disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
 			disquuunId => {
 				connectedCount++;
 			}

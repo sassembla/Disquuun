@@ -7,6 +7,10 @@ using DisquuunCore;
 using DisquuunCore.Deserialize;
 
 public class DisquuunTests {
+	public const string TestDisqueHostStr = "127.0.0.1";
+	public const int TestDisquePortNum = 7711;
+		
+	
 	public static Tests tests;
 	
 	public static void Start () {
@@ -18,6 +22,7 @@ public class DisquuunTests {
 		tests = null;
 	}
 }
+
 
 
 public partial class Tests {
@@ -114,7 +119,7 @@ public partial class Tests {
 		
 		foreach (var test in tests) {
 			try {
-				var disquuun = new Disquuun("127.0.0.1", 7711, 2020008, 2);// this buffer size is just for 100byte job x 10000 then receive 1 GetJob(count 1000).
+				var disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 2020008, 2);// this buffer size is just for 100byte job x 10000 then receive 1 GetJob(count 1000).
 				test(disquuun);
 				if (disquuun != null) {
 					disquuun.Disconnect(true);
@@ -127,7 +132,7 @@ public partial class Tests {
 		
 		var restJobCount = -1;
 		
-		var disquuun2 = new Disquuun("127.0.0.1", 7711, 10240, 1);
+		var disquuun2 = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 10240, 1);
 		WaitUntil(() => (disquuun2.State() == Disquuun.ConnectionState.OPENED), 5);
 		disquuun2.Info().Async(
 			(command, data) => {
@@ -192,8 +197,6 @@ public partial class Tests {
 		if (expected.ToString() != actual.ToString()) TestLogger.Log("test:" + methodName + " FAILED:" + message + " expected:" + expected + " actual:" + actual); 
 	}
 }
-
-
 
 
 public static class TestLogger {

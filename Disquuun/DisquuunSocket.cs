@@ -30,7 +30,6 @@ namespace DisquuunCore {
 			OPENED,			
 			BUSY,
 			
-			
 			DISPOSABLE_READY,
 			DISPOSABLE_OPENING,
 			DISPOSABLE_BUSY,
@@ -49,7 +48,7 @@ namespace DisquuunCore {
 			public int readableDataLength;
 			
 			public readonly SocketAsyncEventArgs connectArgs;
-			public readonly SocketAsyncEventArgs sendArgs;
+			public SocketAsyncEventArgs sendArgs;
 			public readonly SocketAsyncEventArgs receiveArgs;
 			
 			public DisqueCommand currentCommand;
@@ -235,8 +234,7 @@ namespace DisquuunCore {
 				}
 			}
 		}
-		
-		
+
 		/*
 			default pooled socket + disposable socket shared 
 		*/
@@ -371,11 +369,31 @@ namespace DisquuunCore {
 						token.receiveArgs.SetBuffer(token.receiveBuffer, 0, token.receiveBuffer.Length);
 						if (!token.socket.ReceiveAsync(token.receiveArgs)) OnReceived(token.socket, token.receiveArgs);
 						
+						// treat send event args as "Sended." if send is not yet succeeded.
+						if (token.sendArgs.SocketError != SocketError.Success) {
+							var sendArgs = new SocketAsyncEventArgs();
+							sendArgs.AcceptSocket = token.socket;
+							sendArgs.RemoteEndPoint = token.sendArgs.RemoteEndPoint;
+							sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
+							
+							// rewrite sendArgs.
+							token.sendArgs = sendArgs;
+						}
 						token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
 						if (!token.socket.SendAsync(token.sendArgs)) OnSend(token.socket, token.sendArgs);
 					} else {
 						switch (token.socketState) {
 							case SocketState.BUSY: {
+								// treat send event args as "Sended." if send is not yet succeeded.
+								if (token.sendArgs.SocketError != SocketError.Success) {
+									var sendArgs = new SocketAsyncEventArgs();
+									sendArgs.AcceptSocket = token.socket;
+									sendArgs.RemoteEndPoint = token.sendArgs.RemoteEndPoint;
+									sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
+									
+									// rewrite sendArgs.
+									token.sendArgs = sendArgs;
+								}
 								token.socketState = SocketState.OPENED;
 								break;
 							}
@@ -421,13 +439,14 @@ namespace DisquuunCore {
 						Array.Resize(ref token.receiveBuffer, token.receiveArgs.Buffer.Length + nextAdditionalBytesLength);
 					}
 					
+
 					var receivableCount = token.receiveBuffer.Length - token.readableDataLength;
 					token.receiveArgs.SetBuffer(token.receiveBuffer, token.readableDataLength, receivableCount);
+
 					if (!token.socket.ReceiveAsync(token.receiveArgs)) OnReceived(token.socket, token.receiveArgs);
 				}	
 			}
 		}
-		
 		
 		public void Disconnect (bool force=false) {
 			if (force) {
@@ -456,7 +475,6 @@ namespace DisquuunCore {
 			}
 		}
 		
-		
 		/*
 			utils
 		*/
@@ -469,8 +487,7 @@ namespace DisquuunCore {
 			
 			return true;
 		}
-	}
-	
+	}	
 	
 	public static class DisquuunExtension {
 		public static DisquuunResult[] DEPRICATED_Sync (this DisquuunInput input) {	

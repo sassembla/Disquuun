@@ -1,20 +1,28 @@
 #Disquuun
 
 C# Disque client.  
-ver 0.5.1 (essential Disque commands are supported.)
+ver 0.7.0 (essential Disque commands are supported.)
 
-##motivation
-Lightweight, async, independent. not depends on any Redis code. 
+
+##Table of Contents
+  * [Motivation](#motivation)
+  * [Usage](#usage)
+  * [Advanced usage](#advanced-usage)
+  * [License](#license)
+  
+
+##Motivation
+Lightweight, async, zero copy, independent. not depends on any Redis code. 
 
 No threads contained,  
-but the Loop mechanism is included for repeating specific Disque command.
+but the Loop mechanism is included for repeating the Disque commands.
 
 "n" means "this is written in C#".
 
 
-##usage
+##Usage
 
-here is connect -> AddJob -> GetJob -> FastAck async sample.  
+here is connect to Disque server -> AddJob -> GetJob -> FastAck async sample.  
 
 ```C#
 using DisquuunCore;
@@ -37,7 +45,7 @@ disquuun = new Disquuun("127.0.0.1", 7711, 1024, 1,
 				// getjob. get job from Disque.
 				disquuun.GetJob(new string[]{queueId}).Async(
 					(getJobCommand, getJobData) => {
-						// got job from queueId @ Disque.
+						// got job by queueId from Disque server.
 						
 						var jobDatas = DisquuunDeserializer.GetJob(getJobData);
 						Assert(1, jobDatas.Length, "not match.");
@@ -66,8 +74,9 @@ WaitUntil(() => (fastAckedJobCount == 1), 5);
 Sync & Async api is supported. but Sync api is already deplicated.  
 (only used for tests.)
 
-##advanced usage
-Disquuun can getting job with Loop(callback).
+##Advanced usage
+Disquuun can repeat command easily.  
+Getting job with Loop() sample is below.
 
 ```C#
 disquuun.GetJob(new string[]{queueId}, "count", 1000).Loop(
@@ -88,10 +97,10 @@ disquuun.GetJob(new string[]{queueId}, "count", 1000).Loop(
 );
 ```
 
-The Loop() frequency is depends on behaviour of the Dique's API.  
+The Loop() method's frequency is depends on behaviour of the Dique's API.  
  GetJob without "nohang" option will be locked until queueId-queue gets new jobs in Disque. 
 
 In this case you can wait the incoming of new job data and then keep waiting next job data.
 
-##license
+##License
 MIT.

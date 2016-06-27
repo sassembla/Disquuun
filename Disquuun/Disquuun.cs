@@ -42,9 +42,9 @@ namespace DisquuunCore {
 		data structure for result.
 	*/
 	public struct DisquuunResult {
-		public byte[][] bytesArray;
+		public ArraySegment<byte>[] bytesArray;
 		
-		public DisquuunResult (params byte[][] bytesArray) {
+		public DisquuunResult (params ArraySegment<byte>[] bytesArray) {
 			this.bytesArray = bytesArray;
 		}
 	}
@@ -59,10 +59,14 @@ namespace DisquuunCore {
 		
 		
 		private readonly Action<string> ConnectionOpened;
-		private readonly Action<Exception> ConnectionFailed;
+		private readonly Action<string, Exception> ConnectionFailed;
+		private readonly Action ConnectionIncreased;
 		
 		private DisquuunSocket[] socketPool;
+		private object lockObject = new object();
 		
+		private readonly int minConnectionCount;
+
 		public enum ConnectionState {
 			OPENED,
 			ALLCLOSING,
@@ -73,9 +77,10 @@ namespace DisquuunCore {
 			string host,
 			int port,
 			long bufferSize,
-			int maxConnectionCount,
-			Action<string> ConnectionOpened=null,
-			Action<Exception> ConnectionFailed=null
+			int minConnectionCount,
+			Action<string> ConnectionOpenedAct=null,
+			Action<string, Exception> ConnectionFailedAct=null,
+			Action ConnectionIncreasedAct=null
 		) {
 			this.connectionId = Guid.NewGuid().ToString();
 			
@@ -87,7 +92,7 @@ namespace DisquuunCore {
 			/*
 				ConnectionOpened handler treats all connections are opened.
 			*/
-			if (ConnectionOpened != null) this.ConnectionOpened = ConnectionOpened;
+			if (ConnectionOpenedAct != null) this.ConnectionOpened = ConnectionOpenedAct;
 			else this.ConnectionOpened = conId => {};
 			
 			/*
@@ -95,33 +100,39 @@ namespace DisquuunCore {
 				
 				other runtime errors will emit in API handler.
 			*/
-			if (ConnectionFailed != null) this.ConnectionFailed = ConnectionFailed;
-			else ConnectionFailed = e => {};
+			if (ConnectionFailedAct != null) this.ConnectionFailed = ConnectionFailedAct;
+			else this.ConnectionFailed = (info, e) => {};
 			
-			socketPool = new DisquuunSocket[maxConnectionCount];
-			for (var i = 0; i < maxConnectionCount; i++) socketPool[i] = new DisquuunSocket(endPoint, bufferSize, OnSocketOpened, OnSocketConnectionFailed);
+
+			if (ConnectionIncreasedAct != null) this.ConnectionIncreased = ConnectionIncreasedAct;
+			else this.ConnectionIncreased = () => {};
+
+			this.minConnectionCount = minConnectionCount;
+
+			socketPool = new DisquuunSocket[minConnectionCount];
+			for (var i = 0; i < minConnectionCount; i++) socketPool[i] = new DisquuunSocket(endPoint, bufferSize, OnSocketOpened, OnSocketConnectionFailed);
 		}
 		
 		private void OnSocketOpened (DisquuunSocket source, string socketId) {
-			lock (socketPool) {
+			lock (lockObject) {
 				var availableSocketCount = 0;
 				for (var i = 0; i < socketPool.Length; i++) {
 					var socket = socketPool[i];
 					if (socket == null) return;
 					if (socket.State() == DisquuunSocket.SocketState.OPENED) availableSocketCount++;
 				}
-				
-				if (availableSocketCount == socketPool.Length) ConnectionOpened(connectionId);
+
+				if (availableSocketCount == minConnectionCount) ConnectionOpened(connectionId);
 			}
 		}
 		
-		private void OnSocketConnectionFailed (DisquuunSocket source, Exception e) {
+		private void OnSocketConnectionFailed (DisquuunSocket source, string info, Exception e) {
 			UpdateState();
-			if (ConnectionFailed != null) ConnectionFailed(e); 
+			if (ConnectionFailed != null) ConnectionFailed(info, e); 
 		}
 		
 		public void UpdateState () {
-			lock (socketPool) {
+			lock (lockObject) {
 				var availableSocketCount = 0;
 				for (var i = 0; i < socketPool.Length; i++) {
 					var socket = socketPool[i];
@@ -147,25 +158,24 @@ namespace DisquuunCore {
 			return connectionState;
 		}
 		
-		
 		public void Disconnect (bool force=false) {
 			connectionState = ConnectionState.ALLCLOSING;
-			lock (socketPool) {
+			lock (lockObject) {
 				foreach (var socket in socketPool) socket.Disconnect(force);
 			}
 		}
 		
 		private DisquuunSocket ChooseAvailableSocket () {
-			lock (this) {
+			lock (lockObject) {
 				for (var i = 0; i < socketPool.Length; i++) {
 					var socket = socketPool[i];
-					if (socket.State() == DisquuunSocket.SocketState.OPENED) {
+					if (socket.IsChoosable()) {
 						socket.SetBusy();
 						return socket;
 					}
 				}
 				
-				return new DisquuunSocket(endPoint, bufferSize);
+				return new DisquuunSocket(endPoint, bufferSize, OnSocketConnectionFailed);
 			}
 		}
 		
@@ -322,7 +332,7 @@ namespace DisquuunCore {
 		
 		
 		public static void Log (string message) {
-			// TestLogger.Log(message);
+			TestLogger.Log(message);
 		}
 	}
 }

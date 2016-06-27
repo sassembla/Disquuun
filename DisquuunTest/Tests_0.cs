@@ -19,7 +19,7 @@ public partial class Tests {
 			connectionId => {
 				conId = connectionId;
 			},
-			e => {
+			(info, e) => {
 				
 			}
 		);
@@ -126,7 +126,7 @@ public partial class Tests {
 		
 		var disquuun2 = new Disquuun(DisquuunTests.TestDisqueHostStr, 8888, 1024, 1, 
 			conId => {},
-			e2 => {
+			(info, e2) => {
 				// set error to param,
 				e = e2;
 				// TestLogger.Log("e:" + e);

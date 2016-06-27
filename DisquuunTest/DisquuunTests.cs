@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading;
 
 using DisquuunCore;
@@ -9,7 +10,7 @@ using DisquuunCore.Deserialize;
 public class DisquuunTests {
 	public const string TestDisqueHostStr = "127.0.0.1";
 	public const int TestDisquePortNum = 7711;
-		
+	public const int TestDisqueDummyPortNum = 7712;
 	
 	public static Tests tests;
 	
@@ -29,6 +30,7 @@ public partial class Tests {
 	public void RunTests () {
 		var tests = new List<Action<Disquuun>>();
 		
+		for (var i = 0; i < 1; i++) {
 		// basement.
 		tests.Add(_0_0_InitWith2Connection);
 		tests.Add(_0_0_1_WaitOnOpen2Connection);
@@ -104,7 +106,8 @@ public partial class Tests {
 		tests.Add(_4_5_ByfferOverWithSokcetOverSyncGetJob_Async);
 		
 		// error handling.
-		// tests.Add(_5_0_Error)// connect時に出るエラー、接続できないとか、あとjobの失敗時のハンドリング、ハングしないケースとかいっぱいある。
+		tests.Add(_5_0_ConnectionFailed);
+		// tests.Add(_5_1_ConnectionFailedMultiple);// 連続してるとダメっていう。状態持ってるなどこかに。
 		
 		// adding async request over busy-socket num.
 		tests.Add(_6_0_ExceededSocketNo3In2);
@@ -112,41 +115,47 @@ public partial class Tests {
 		
 		// benchmarks.
 		tests.Add(_7_0_AddJob1000);
+		tests.Add(_7_0_0_AddJob1000by100Connectoion);
 		tests.Add(_7_1_GetJob1000);
-		
-		
-		TestLogger.Log("tests started.");
-		
-		foreach (var test in tests) {
-			try {
-				var disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 2020008, 2);// this buffer size is just for 100byte job x 10000 then receive 1 GetJob(count 1000).
-				test(disquuun);
-				if (disquuun != null) {
-					disquuun.Disconnect(true);
-					disquuun = null;
-				}
-			} catch (Exception e) {
-				TestLogger.Log("test:" + test + " FAILED by exception:" + e);
-			}
+		tests.Add(_7_1_0_GetJob1000by100Connection);
+
+		// data size bounding case.
+		tests.Add(_8_0_LargeSizeSendThenSmallSizeSendMakeEmitOnSendAfterOnReceived);
+		tests.Add(_8_1_LargeSizeSendThenSmallSizeSendLoopMakeEmitOnSendAfterOnReceived);
+
 		}
-		
-		var restJobCount = -1;
-		
-		var disquuun2 = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 10240, 1);
-		WaitUntil(() => (disquuun2.State() == Disquuun.ConnectionState.OPENED), 5);
-		disquuun2.Info().Async(
-			(command, data) => {
-				var result = DisquuunDeserializer.Info(data);
-				
-				restJobCount = result.jobs.registered_jobs;
-				
-				TestLogger.Log("all tests over. rest unconsumed job:" + restJobCount + " connected_clients:" + result.clients.connected_clients);
+
+
+		try {
+			TestLogger.Log("tests started.", true);
+			
+			var disquuunForResultInfo = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 10240, 1);
+			WaitUntil(() => (disquuunForResultInfo.State() == Disquuun.ConnectionState.OPENED), 5);
+			
+			foreach (var test in tests) {
+				try {
+					var disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 2020008, 2);// this buffer size is just for 100byte job x 10000 then receive 1 GetJob(count 1000).
+					test(disquuun);
+					if (disquuun != null) {
+						disquuun.Disconnect(true);
+						disquuun = null;
+					}
+
+					var info = disquuunForResultInfo.Info().DEPRICATED_Sync();
+					var result = DisquuunDeserializer.Info(info);
+					var restJobCount = result.jobs.registered_jobs;
+					if (restJobCount != 0) TestLogger.Log("test:" + test.Method + " rest job:" + restJobCount, true);
+					else TestLogger.Log("test:" + test.Method + " passed. no job exists.", true);
+				} catch (Exception e) {
+					TestLogger.Log("test:" + test.Method + " FAILED by exception:" + e);
+				}
 			}
-		);
-		
-		WaitUntil(() => (restJobCount != -1), 5);
-		
-		disquuun2.Disconnect(true);
+
+			disquuunForResultInfo.Disconnect(true);
+			TestLogger.Log("tests end.", true);
+		} catch (Exception e) {
+			TestLogger.Log("tests failed:" + e, true);
+		}
 	}
 	
 	
@@ -166,14 +175,14 @@ public partial class Tests {
 						var distanceSeconds = (current - startTime).Seconds;
 						
 						if (timeoutSec < distanceSeconds) {
-							TestLogger.Log("timeout:" + methodName);
+							TestLogger.Log("timeout:" + methodName, true);
 							break;
 						}
 						
 						System.Threading.Thread.Sleep(10);
 					}
 				} catch (Exception e) {
-					TestLogger.Log("methodName:" + methodName + " error:" + e);
+					TestLogger.Log("methodName:" + methodName + " error:" + e, true);
 				}
 				
 				resetEvent.Set();
@@ -194,15 +203,20 @@ public partial class Tests {
 	public void Assert (object expected, object actual, string message) {
 		System.Diagnostics.StackTrace stack  = new System.Diagnostics.StackTrace(false);
 		var methodName = stack.GetFrame(1).GetMethod().Name;
-		if (expected.ToString() != actual.ToString()) TestLogger.Log("test:" + methodName + " FAILED:" + message + " expected:" + expected + " actual:" + actual); 
+		if (expected.ToString() != actual.ToString()) TestLogger.Log("test:" + methodName + " FAILED:" + message + " expected:" + expected + " actual:" + actual + " stack:" + stack); 
 	}
 }
 
 
 public static class TestLogger {
 	public static string logPath;
-	
-	public static void Log (string message) {
+	public static StringBuilder logs = new StringBuilder();
+	public static void Log (string message, bool export=false) {
+		if (!export) {
+			logs.AppendLine(message);
+			return;
+		}
+		
 		logPath = "test.log";
 		
 		// file write
@@ -213,6 +227,10 @@ public static class TestLogger {
 			FileShare.ReadWrite)
 		) {
 			using (var sr = new StreamWriter(fs)) {
+				if (0 < logs.Length) {
+					sr.WriteLine(logs.ToString());
+					logs = new StringBuilder();
+				}
 				sr.WriteLine("log:" + message);
 			}
 		}

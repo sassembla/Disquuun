@@ -53,7 +53,7 @@ public partial class Tests {
 		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var queueId = Guid.NewGuid().ToString();
-		var addGetFastAckCount = 1000;
+		var addGetFastAckCount = 100;
 		var resultCount = 0;
 		
 		for (var i = 0; i < addGetFastAckCount; i++) {

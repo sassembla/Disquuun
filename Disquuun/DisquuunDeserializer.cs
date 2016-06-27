@@ -6,9 +6,15 @@ using System.Text;
 namespace DisquuunCore.Deserialize {
 	
 	public static class DisquuunDeserializer {
+		public static byte[] ByteArrayFromSegment (ArraySegment<byte> arraySegment) {
+			var buffer = new byte[arraySegment.Count];
+			Buffer.BlockCopy(arraySegment.Array, arraySegment.Offset, buffer, 0, arraySegment.Count);
+			return buffer;
+		}
+
 		
 		public static string AddJob (DisquuunResult[] data) {
-			var idStrBytes = data[0].bytesArray[0];
+			var idStrBytes = ByteArrayFromSegment(data[0].bytesArray[0]);
 			return Encoding.UTF8.GetString(idStrBytes);
 		}
 		
@@ -20,15 +26,15 @@ namespace DisquuunCore.Deserialize {
 			public readonly int additionalDeliveriesCount;
 			
 			public JobData (DisquuunResult dataSourceBytes) {
-				this.jobId = Encoding.UTF8.GetString(dataSourceBytes.bytesArray[0]);
-				this.jobData = dataSourceBytes.bytesArray[1];
+				this.jobId = Encoding.UTF8.GetString(ByteArrayFromSegment(dataSourceBytes.bytesArray[0]));
+				this.jobData = ByteArrayFromSegment(dataSourceBytes.bytesArray[1]);
 				
 				if (dataSourceBytes.bytesArray.Length < 3) {
 					nackCount = -1;
 					additionalDeliveriesCount = -1;
 				} else {// with "withcounters" option
-					nackCount = Convert.ToInt32(Encoding.UTF8.GetString(dataSourceBytes.bytesArray[2]));
-					additionalDeliveriesCount = Convert.ToInt32(Encoding.UTF8.GetString(dataSourceBytes.bytesArray[3]));
+					nackCount = Convert.ToInt32(Encoding.UTF8.GetString(ByteArrayFromSegment(dataSourceBytes.bytesArray[2])));
+					additionalDeliveriesCount = Convert.ToInt32(Encoding.UTF8.GetString(ByteArrayFromSegment(dataSourceBytes.bytesArray[3])));
 				}
 			}
 		}
@@ -43,7 +49,7 @@ namespace DisquuunCore.Deserialize {
 		}
 	
 		public static int DeserializeInt (DisquuunResult[] data) {
-			var valStr = Encoding.UTF8.GetString(data[0].bytesArray[0]);
+			var valStr = Encoding.UTF8.GetString(ByteArrayFromSegment(data[0].bytesArray[0]));
 			return Convert.ToInt32(valStr);
 		}
 		public static int AckJob (DisquuunResult[] data) {
@@ -485,7 +491,7 @@ namespace DisquuunCore.Deserialize {
 		
 		
 		public static InfoStruct Info (DisquuunResult[] data) {
-			return new InfoStruct(data[0].bytesArray[0]);
+			return new InfoStruct(ByteArrayFromSegment(data[0].bytesArray[0]));
 		}
 		
 		public struct HelloData {
@@ -512,14 +518,14 @@ namespace DisquuunCore.Deserialize {
 		}
 		
 		public static HelloData Hello (DisquuunResult[] data) {
-			var version = Encoding.UTF8.GetString(data[0].bytesArray[0]);
-			var sourceNodeId = Encoding.UTF8.GetString(data[0].bytesArray[1]);
+			var version = Encoding.UTF8.GetString(ByteArrayFromSegment(data[0].bytesArray[0]));
+			var sourceNodeId = Encoding.UTF8.GetString(ByteArrayFromSegment(data[0].bytesArray[1]));
 			var nodeDatas = new List<NodeData>();
 			for (var i = 1; i < data.Length; i++) {
-				var nodeIdStr = Encoding.UTF8.GetString(data[i].bytesArray[0]);
-				var ipStr = Encoding.UTF8.GetString(data[i].bytesArray[1]);
-				var portInt = Convert.ToInt16(Encoding.UTF8.GetString(data[i].bytesArray[2]));
-				var priorityInt = Convert.ToInt16(Encoding.UTF8.GetString(data[i].bytesArray[3]));
+				var nodeIdStr = Encoding.UTF8.GetString(ByteArrayFromSegment(data[i].bytesArray[0]));
+				var ipStr = Encoding.UTF8.GetString(ByteArrayFromSegment(data[i].bytesArray[1]));
+				var portInt = Convert.ToInt16(Encoding.UTF8.GetString(ByteArrayFromSegment(data[i].bytesArray[2])));
+				var priorityInt = Convert.ToInt16(Encoding.UTF8.GetString(ByteArrayFromSegment(data[i].bytesArray[3])));
 				nodeDatas.Add(new NodeData(nodeIdStr, ipStr, portInt, priorityInt));
 			}
 			var helloData = new HelloData(version, sourceNodeId, nodeDatas.ToArray());
@@ -527,7 +533,7 @@ namespace DisquuunCore.Deserialize {
 		}
 		
 		public static int Qlen (DisquuunResult[] data) {
-			var qLenStr = Encoding.UTF8.GetString(data[0].bytesArray[0]);
+			var qLenStr = Encoding.UTF8.GetString(ByteArrayFromSegment(data[0].bytesArray[0]));
 			return Convert.ToInt32(qLenStr);
 		}
 		
@@ -545,8 +551,8 @@ namespace DisquuunCore.Deserialize {
 			
 			public QstatData (DisquuunResult[] data) {
 				foreach (var keyValue in data) {
-					var key = Encoding.UTF8.GetString(keyValue.bytesArray[0]);
-					var strVal = Encoding.UTF8.GetString(keyValue.bytesArray[1]);
+					var key = Encoding.UTF8.GetString(ByteArrayFromSegment(keyValue.bytesArray[0]));
+					var strVal = Encoding.UTF8.GetString(ByteArrayFromSegment(keyValue.bytesArray[1]));
 					switch (key) {
 						case "name": {
 							this.name = strVal;

@@ -332,7 +332,7 @@ namespace DisquuunCore {
 		
 		
 		public static void Log (string message) {
-			TestLogger.Log(message);
+			// TestLogger.Log(message);
 		}
 	}
 }

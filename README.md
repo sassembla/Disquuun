@@ -1,7 +1,7 @@
 #Disquuun
 
 C# Disque client.  
-ver 0.7.0 (essential Disque commands are supported.)
+ver 0.7.1 (essential Disque commands are supported.)
 
 
 ##Table of Contents

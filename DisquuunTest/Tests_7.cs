@@ -243,4 +243,9 @@ public partial class Tests {
 		Assert(addingJobCount, result, "result not match.");
 		disquuun.Disconnect(true);
 	}
+
+
+	// パイプライン版思いついた。Asyncとかに対して実施できそうな気がする。
+
+	// 予約みたいな概念か。
 }

@@ -53,7 +53,7 @@ namespace DisquuunCore
 			public int readableDataLength;
 			
 			public readonly SocketAsyncEventArgs connectArgs;
-			public readonly SocketAsyncEventArgs sendArgs;
+			public SocketAsyncEventArgs sendArgs;
 			public readonly SocketAsyncEventArgs receiveArgs;
 
 			public bool continuation;
@@ -90,16 +90,13 @@ namespace DisquuunCore
 				clientSocket.NoDelay = true;
 				
 				var connectArgs = new SocketAsyncEventArgs();
-				connectArgs.AcceptSocket = clientSocket;
 				connectArgs.RemoteEndPoint = endPoint;
 				
 				var sendArgs = new SocketAsyncEventArgs();
-				sendArgs.AcceptSocket = clientSocket;
 				sendArgs.RemoteEndPoint = endPoint;
 				sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
 				
 				var receiveArgs = new SocketAsyncEventArgs();
-				receiveArgs.AcceptSocket = clientSocket;
 				receiveArgs.RemoteEndPoint = endPoint;
 				receiveArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnReceived);
 						
@@ -117,22 +114,20 @@ namespace DisquuunCore
 			
 			this.SocketOpened = SocketOpenedAct;
 			this.SocketClosed = SocketClosedAct;
+			
 			try {
 				var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 				clientSocket.NoDelay = true;
 				
 				var connectArgs = new SocketAsyncEventArgs();
-				connectArgs.AcceptSocket = clientSocket;
 				connectArgs.RemoteEndPoint = endPoint;
 				connectArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnConnect);
 				
 				var sendArgs = new SocketAsyncEventArgs();
-				sendArgs.AcceptSocket = clientSocket;
 				sendArgs.RemoteEndPoint = endPoint;
 				sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
 				
 				var receiveArgs = new SocketAsyncEventArgs();
-				receiveArgs.AcceptSocket = clientSocket;
 				receiveArgs.RemoteEndPoint = endPoint;
 				receiveArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnReceived);
 							
@@ -175,8 +170,6 @@ namespace DisquuunCore
 					if (socketToken.receiveBuffer.Length < readableLength) {
 						// Disquuun.Log("サイズオーバーしてる " + socketToken.receiveBuffer.Length + " vs:" + readableLength);
 						Array.Resize(ref socketToken.receiveBuffer, readableLength);
-					} else {
-						// Disquuun.Log("まだサイズオーバーしてない " + socketToken.receiveBuffer.Length + " vs:" + readableLength + " が、読み込みの過程でサイズオーバーしそう。");
 					}
 				}
 				
@@ -261,7 +254,19 @@ namespace DisquuunCore
 			socketToken.currentCommand = command;
 			socketToken.currentSendingBytes = data;
 			socketToken.AsyncCallback = Callback;
-			socketToken.sendArgs.SetBuffer(data, 0, data.Length);		
+
+			try {
+				socketToken.sendArgs.SetBuffer(data, 0, data.Length);
+			} catch (Exception e) {
+				Disquuun.Log("sendArgs setBuffer error:" + e);
+
+				// renew. potential error is exists and should avoid this error.
+				var endPoint = socketToken.sendArgs.RemoteEndPoint;
+				socketToken.sendArgs = new SocketAsyncEventArgs();
+
+				socketToken.sendArgs.RemoteEndPoint = endPoint;
+				socketToken.sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
+			}		
 			if (!socketToken.socket.SendAsync(socketToken.sendArgs)) OnSend(socketToken.socket, socketToken.sendArgs); 
 		}
 		
@@ -311,7 +316,6 @@ namespace DisquuunCore
 				}
 			}
 		}
-
 		
 		private void OnSend (object unused, SocketAsyncEventArgs args) {
 			switch (args.SocketError) {

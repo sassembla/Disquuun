@@ -338,7 +338,7 @@ namespace DisquuunCore {
 		}
 		
 		public static void Log (string message, bool write=false) {
-			TestLogger.Log(message, write);
+			// TestLogger.Log(message, write);
 		}
 	}
 }

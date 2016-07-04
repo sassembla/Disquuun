@@ -110,7 +110,7 @@ namespace DisquuunCore {
 			this.minConnectionCount = minConnectionCount;
 
 			socketPool = new DisquuunSocket[minConnectionCount];
-			for (var i = 0; i < minConnectionCount; i++) socketPool[i] = new DisquuunSocket(endPoint, bufferSize, OnSocketOpened, OnSocketConnectionFailed);
+			for (var i = 0; i < minConnectionCount; i++) socketPool[i] = new DisquuunSocket(endPoint, bufferSize, OnSocketOpened, OnSocketConnectionFailed, -(i+1));
 		}
 		
 		private void OnSocketOpened (DisquuunSocket source, string socketId) {
@@ -128,7 +128,7 @@ namespace DisquuunCore {
 		
 		private void OnSocketConnectionFailed (DisquuunSocket source, string info, Exception e) {
 			UpdateState();
-			if (ConnectionFailed != null) ConnectionFailed(info, e); 
+			if (ConnectionFailed != null) ConnectionFailed("OnSocketConnectionFailed:" + info, e); 
 		}
 		
 		public void UpdateState () {
@@ -164,8 +164,10 @@ namespace DisquuunCore {
 				foreach (var socket in socketPool) socket.Disconnect(force);
 			}
 		}
-		
+		private int newSocketCount = 0;
+
 		private DisquuunSocket ChooseAvailableSocket () {
+			try {
 			lock (lockObject) {
 				for (var i = 0; i < socketPool.Length; i++) {
 					var socket = socketPool[i];
@@ -175,7 +177,13 @@ namespace DisquuunCore {
 					}
 				}
 				
-				return new DisquuunSocket(endPoint, bufferSize, OnSocketConnectionFailed);
+				newSocketCount++;
+				return new DisquuunSocket(endPoint, bufferSize, OnSocketConnectionFailed, newSocketCount);
+			}
+			} catch (Exception e) {
+				Disquuun.Log("ChooseAvailableSocket before error,", true);
+				Disquuun.Log("ChooseAvailableSocket e:" + e.Message, true);
+				throw e;
 			}
 		}
 		
@@ -329,10 +337,8 @@ namespace DisquuunCore {
 			return new DisquuunInput(DisqueCommand.PAUSE, bytes, socket);
 		}
 		
-		
-		
-		public static void Log (string message) {
-			// TestLogger.Log(message);
+		public static void Log (string message, bool write=false) {
+			TestLogger.Log(message, write);
 		}
 	}
 }

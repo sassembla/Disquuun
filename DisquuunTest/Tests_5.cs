@@ -10,7 +10,7 @@ using DisquuunCore.Deserialize;
 
 public partial class Tests {
 	public void _5_0_ConnectionFailed (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_5_0_ConnectionFailed", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
 		Exception error = null;
 		var disquuun2 = new Disquuun(
@@ -25,11 +25,11 @@ public partial class Tests {
 			}
 		);
 		
-		WaitUntil(() => (error != null), 5);
+		WaitUntil("_5_0_ConnectionFailed", () => (error != null), 5);
 		disquuun2.Disconnect(true);
 	}
 	public void _5_1_ConnectionFailedMultiple (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_5_1_ConnectionFailedMultiple", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
 		List<Exception> errors = new List<Exception>();
 		var disquuun2 = new Disquuun(
@@ -46,7 +46,7 @@ public partial class Tests {
 			}
 		);
 
-		WaitUntil(() => (errors.Count == 5), 10);
+		WaitUntil("_5_1_ConnectionFailedMultiple", () => (errors.Count == 5), 10);
 		disquuun2.Disconnect(true);
 	}
 
@@ -61,19 +61,19 @@ public partial class Tests {
 		っていうだけでいいかな。
 	*/
 	// public void _5_2_追加接続でのエラーを出そう。 (Disquuun disquuun) {
-	// 	WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+	// 	WaitUntil("", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 	// }
 
 	// public void _5_3_接続数上限を超えそうな時に、、っていうのが良いのかな〜〜デザインの問題だな、、 (Disquuun disquuun) {
-	// 	WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+	// 	WaitUntil("", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 	// }
 
 	// public void _5_4_ConnectionClosedWhileReceiving (Disquuun disquuun) {
-	// 	WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+	// 	WaitUntil("", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 	// }
 
 	// public void _5_5_ConnectionClosedWhileReceiving (Disquuun disquuun) {
-	// 	WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+	// 	WaitUntil("", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 	// }
 
 	

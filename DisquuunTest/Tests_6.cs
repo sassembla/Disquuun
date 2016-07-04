@@ -10,7 +10,7 @@ using DisquuunCore.Deserialize;
 
 public partial class Tests {
 	public void _6_0_ExceededSocketNo3In2 (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_6_0_ExceededSocketNo3In2", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var queueId = Guid.NewGuid().ToString();
 		var infoCount = 0;
@@ -23,11 +23,11 @@ public partial class Tests {
 			);
 		}
 		
-		WaitUntil(() => (infoCount == 3), 5);
+		WaitUntil("_6_0_ExceededSocketNo3In2", () => (infoCount == 3), 5);
 	}
 	
 	public void _6_1_ExceededSocketNo100In2 (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_6_1_ExceededSocketNo100In2", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var queueId = Guid.NewGuid().ToString();
 		var infoCount = 0;
@@ -42,6 +42,6 @@ public partial class Tests {
 			);
 		}
 		
-		WaitUntil(() => (infoCount == connectCount), 5);
+		WaitUntil("_6_1_ExceededSocketNo100In2", () => (infoCount == connectCount), 5);
 	}
 }

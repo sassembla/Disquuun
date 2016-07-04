@@ -10,7 +10,7 @@ using DisquuunCore.Deserialize;
 
 public partial class Tests {
 	public void _0_0_InitWith2Connection (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 	}
 	
 	public void _0_0_1_WaitOnOpen2Connection (Disquuun disquuun) {
@@ -23,7 +23,7 @@ public partial class Tests {
 				
 			}
 		);
-		WaitUntil(() => !string.IsNullOrEmpty(conId), 5);
+		WaitUntil("_0_0_1_WaitOnOpen2Connection", () => !string.IsNullOrEmpty(conId), 5);
 		
 		disquuun2.Disconnect(true);
 	}
@@ -41,7 +41,7 @@ public partial class Tests {
 				var result = disquuun.GetJob(new string[]{queueId}).DEPRICATED_Sync();
 				var jobDatas = DisquuunDeserializer.GetJob(result);
 
-				Assert(1, jobDatas.Length, "not match.");
+				Assert("_0_0_2_ReadmeSampleSync", 1, jobDatas.Length, "not match.");
 
 				// fastack.
 				var jobId = jobDatas[0].jobId;
@@ -51,7 +51,7 @@ public partial class Tests {
 			}
 		);
 		
-		WaitUntil(() => overed, 5);
+		WaitUntil("", () => overed, 5);
 		
 		disquuun.Disconnect(true);
 	}
@@ -74,7 +74,7 @@ public partial class Tests {
 								// got job from queueId @ Disque.
 								
 								var jobDatas = DisquuunDeserializer.GetJob(getJobData);
-								Assert(1, jobDatas.Length, "not match.");
+								Assert("_0_0_3_ReadmeSampleAsync", 1, jobDatas.Length, "not match.");
 								
 								// get jobId from got job data.
 								var gotJobId = jobDatas[0].jobId;
@@ -85,7 +85,7 @@ public partial class Tests {
 										// fastack succeded or not.
 										
 										fastAckedJobCount = DisquuunDeserializer.FastAck(fastAckData);
-										Assert(1, fastAckedJobCount, "not match.");
+										Assert("_0_0_3_ReadmeSampleAsync", 1, fastAckedJobCount, "not match.");
 									} 
 								);
 							}
@@ -95,7 +95,7 @@ public partial class Tests {
 			}
 		);
 		
-		WaitUntil(() => (fastAckedJobCount == 1), 5);
+		WaitUntil("", () => (fastAckedJobCount == 1), 5);
 		
 		disquuun.Disconnect(true);
 	}
@@ -105,12 +105,12 @@ public partial class Tests {
 		
 		disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 100,
 			disquuunId => {
-				Assert(0, connectedCount, "not match.");
+				Assert("_0_0_4_ConnectedShouldCallOnce", 0, connectedCount, "not match.");
 				connectedCount++;
 			}
 		);
 		
-		WaitUntil(() => (connectedCount == 1), 5);
+		WaitUntil("_0_0_4_ConnectedShouldCallOnce", () => (connectedCount == 1), 5);
 		
 		disquuun.Disconnect(true);
 	}
@@ -133,36 +133,36 @@ public partial class Tests {
 			}
 		);
 		
-		WaitUntil(() => (e != null), 1);
+		WaitUntil("_0_1_ConnectionFailedWithNoDisqueServer", () => (e != null), 1);
 		
 		disquuun2.Disconnect(true);
 	}
 	
 	public void _0_2_SyncInfo (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		var data = disquuun.Info().DEPRICATED_Sync();
 		var infoStr = DisquuunDeserializer.Info(data).rawString;
-		Assert(!string.IsNullOrEmpty(infoStr), "empty.");
+		Assert("_0_2_SyncInfo", !string.IsNullOrEmpty(infoStr), "empty.");
 	}
 	
 	public void _0_3_SyncInfoTwice (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		{
 			var datas = disquuun.Info().DEPRICATED_Sync();
 			var infoStr = DisquuunDeserializer.Info(datas).rawString;
-			Assert(!string.IsNullOrEmpty(infoStr), "empty.");
+			Assert("_0_3_SyncInfoTwice", !string.IsNullOrEmpty(infoStr), "empty.");
 		}
 		
 		{
 			var datas = disquuun.Info().DEPRICATED_Sync();
 			var infoStr = DisquuunDeserializer.Info(datas).rawString;
-			Assert(!string.IsNullOrEmpty(infoStr), "empty.");
+			Assert("_0_3_SyncInfoTwice", !string.IsNullOrEmpty(infoStr), "empty.");
 		}	
 	}
 	
 	public void _0_4_AsyncInfo (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_0_4_AsyncInfo", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var infoStr = string.Empty;
 		disquuun.Info().Async(
@@ -171,11 +171,11 @@ public partial class Tests {
 			}
 		);
 		
-		WaitUntil(() => !string.IsNullOrEmpty(infoStr), 5);
+		WaitUntil("_0_4_AsyncInfo", () => !string.IsNullOrEmpty(infoStr), 5);
 	}
 	
 	public void _0_5_LoopInfo_Once (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_0_5_LoopInfo_Once", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var infoStr = string.Empty;
 		disquuun.Info().Loop(
@@ -185,11 +185,11 @@ public partial class Tests {
 			} 
 		);
 		
-		WaitUntil(() => !string.IsNullOrEmpty(infoStr), 5);
+		WaitUntil("_0_5_LoopInfo_Once", () => !string.IsNullOrEmpty(infoStr), 5);
 	}
 	
 	public void _0_6_LoopInfo_Twice (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_0_6_LoopInfo_Twice", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var infos = new List<string>();
 		disquuun.Info().Loop(
@@ -201,11 +201,11 @@ public partial class Tests {
 			} 
 		);
 		
-		WaitUntil(() => (infos.Count == 2), 5);
+		WaitUntil("_0_6_LoopInfo_Twice", () => (infos.Count == 2), 5);
 	}
 	
 	public void _0_7_LoopInfo_100 (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_0_7_LoopInfo_100", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var infos = new List<string>();
 		disquuun.Info().Loop(
@@ -217,6 +217,6 @@ public partial class Tests {
 			} 
 		);
 		
-		WaitUntil(() => (infos.Count == 100), 5);		
+		WaitUntil("_0_7_LoopInfo_100", () => (infos.Count == 100), 5);		
 	}
 }

@@ -123,7 +123,9 @@ public partial class Tests {
 			(command, result) => {
 				var jobDatas = DisquuunDeserializer.GetJob(result);
 				ackCount = jobDatas[0].additionalDeliveriesCount;
-				disquuun.FastAck(new string[]{jobDatas[0].jobId}).DEPRICATED_Sync();
+				disquuun.FastAck(new string[]{jobDatas[0].jobId}).Async(
+					(c,d) => {}
+				);
 			}
 		);
 		

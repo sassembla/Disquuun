@@ -49,6 +49,9 @@ public partial class Tests {
 		WaitUntil("_3_0_Nested2AsyncSocket", () => done, 5);
 	}
 	
+
+	private object _3_1_NestedMultipleAsyncSocketLockObject = new object();
+
 	public void _3_1_NestedMultipleAsyncSocket (Disquuun disquuun) {
 		WaitUntil("_3_1_NestedMultipleAsyncSocket", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
@@ -73,7 +76,7 @@ public partial class Tests {
 									Assert("_3_1_NestedMultipleAsyncSocket", DisqueCommand.FASTACK, c3, "command mismatch.");
 									var fastackResult = DisquuunDeserializer.FastAck(d3);
 									Assert("_3_1_NestedMultipleAsyncSocket", 1, fastackResult, "not match.");
-									resultCount++;
+									lock (_3_1_NestedMultipleAsyncSocketLockObject) resultCount++;
 								}
 							);
 						}

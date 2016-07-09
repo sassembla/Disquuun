@@ -25,7 +25,7 @@ public partial class Tests {
 		);
 		WaitUntil("_0_0_1_WaitOnOpen2Connection", () => !string.IsNullOrEmpty(conId), 5);
 		
-		disquuun2.Disconnect(true);
+		disquuun2.Disconnect();
 	}
 	
 	public void _0_0_2_ReadmeSampleSync (Disquuun disquuun) {
@@ -53,13 +53,13 @@ public partial class Tests {
 		
 		WaitUntil("", () => overed, 5);
 		
-		disquuun.Disconnect(true);
+		disquuun.Disconnect();
 	}
 	
 	public void _0_0_3_ReadmeSampleAsync (Disquuun disquuun) {
 		int fastAckedJobCount = 0;
 		
-		disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 2,
+		disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 3,
 			disquuunId => {
 				var queueId = Guid.NewGuid().ToString();
 
@@ -95,9 +95,9 @@ public partial class Tests {
 			}
 		);
 		
-		WaitUntil("", () => (fastAckedJobCount == 1), 5);
+		WaitUntil("_0_0_3_ReadmeSampleAsync", () => (fastAckedJobCount == 1), 5);
 		
-		disquuun.Disconnect(true);
+		disquuun.Disconnect();
 	}
 	
 	public void _0_0_4_ConnectedShouldCallOnce (Disquuun disquuun) {
@@ -112,7 +112,7 @@ public partial class Tests {
 		
 		WaitUntil("_0_0_4_ConnectedShouldCallOnce", () => (connectedCount == 1), 5);
 		
-		disquuun.Disconnect(true);
+		disquuun.Disconnect();
 	}
 
     public void _0_1_ConnectionFailedWithNoDisqueServer (Disquuun disquuun) {
@@ -135,7 +135,7 @@ public partial class Tests {
 		
 		WaitUntil("_0_1_ConnectionFailedWithNoDisqueServer", () => (e != null), 1);
 		
-		disquuun2.Disconnect(true);
+		disquuun2.Disconnect();
 	}
 	
 	public void _0_2_SyncInfo (Disquuun disquuun) {

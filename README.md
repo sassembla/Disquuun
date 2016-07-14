@@ -3,6 +3,7 @@
 C# Disque client.  
 ver 0.7.2 (essential Disque commands are supported.)
 
+DotNet Core 1.0 adopetd.
 
 ##Table of Contents
   * [Motivation](#motivation)

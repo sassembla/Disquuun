@@ -9,7 +9,7 @@ DotNet Core 1.0 adopetd.
   * [Motivation](#motivation)
   * [Basic Usage](#basic-usage)
   * [Loop usage](#loop-usage)
-  * [Pipeline usage](#pipelune-usage)
+  * [Pipeline usage](#pipeline-usage)
   * [License](#license)
   
 

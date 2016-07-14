@@ -115,7 +115,7 @@ disquuun.Pipeline(
 	disquuun.GetJob(new string[]{"my queue name"})
 ).Execute(
 	(command, data) => {
-		if (command != DisqueCommand.GetJob) return true;
+		if (command != DisqueCommand.GetJob) return;
 		var jobs = DisquuunDeserializer.GetJob(data);
 		
 		var jobIds = jobs.Select(jobData => jobData.jobId).ToArray();
@@ -127,7 +127,6 @@ disquuun.Pipeline(
 		disquuun.FastAck(jobIds).Async((command2, data2) => {});
 		
 		InputDatasToContext(jobDatas);
-		return true;
 	}
 );
 ```

@@ -1,23 +1,23 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 
-namespace DisquuunCore
-{
-    public class DisquuunSocket {
+namespace DisquuunCore {
+    public class DisquuunSocket : StackSocket {
 		public readonly string socketId;
-		
+
 		private Action<DisquuunSocket, string> SocketOpened;
+		public Action<DisquuunSocket> SocketReloaded;
 		private Action<DisquuunSocket, string, Exception> SocketClosed;
 		
 		
 		private SocketToken socketToken;
 		
-		public SocketState State () {
-			return socketToken.socketState;
-		}
-		
 		public bool IsChoosable () {
+			if (socketToken == null) return false;
 			if (socketToken.socketState == SocketState.OPENED) return true;
 			return false;
 		}
@@ -27,18 +27,13 @@ namespace DisquuunCore
 		}
 		
 		public enum SocketState {
+			NONE,
 			OPENING,
 			OPENED,			
 			BUSY,
 
 			SENDED,
 			RECEIVED,
-			
-			DISPOSABLE_READY,
-			DISPOSABLE_OPENING,
-			DISPOSABLE_BUSY,
-			DISPOSABLE_SENDED,
-			DISPOSABLE_RECEIVED,
 			
 			CLOSING,
 			CLOSED
@@ -56,13 +51,16 @@ namespace DisquuunCore
 			public SocketAsyncEventArgs sendArgs;
 			public readonly SocketAsyncEventArgs receiveArgs;
 
+			public bool isPipeline;
 			public bool continuation;
 
-			public DisqueCommand currentCommand;
+			public Queue<DisqueCommand> currentCommands;
 			public byte[] currentSendingBytes;
 			
 			public Func<DisqueCommand, DisquuunCore.DisquuunResult[], bool> AsyncCallback;
 			
+			public SocketToken () {}
+
 			public SocketToken (Socket socket, long bufferSize, SocketAsyncEventArgs connectArgs, SocketAsyncEventArgs sendArgs, SocketAsyncEventArgs receiveArgs) {
 				this.socket = socket;
 				
@@ -79,42 +77,20 @@ namespace DisquuunCore
 				this.receiveArgs.SetBuffer(receiveBuffer, 0, receiveBuffer.Length);
 			}
 		}
-		
-		public DisquuunSocket (IPEndPoint endPoint, long bufferSize, Action<DisquuunSocket, string, Exception> SocketClosedAct) {
-			this.socketId = Guid.NewGuid().ToString();
-			
-			this.SocketClosed = SocketClosedAct;
 
-			try {
-				var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-				clientSocket.NoDelay = true;
-				
-				var connectArgs = new SocketAsyncEventArgs();
-				connectArgs.RemoteEndPoint = endPoint;
-				
-				var sendArgs = new SocketAsyncEventArgs();
-				sendArgs.RemoteEndPoint = endPoint;
-				sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
-				
-				var receiveArgs = new SocketAsyncEventArgs();
-				receiveArgs.RemoteEndPoint = endPoint;
-				receiveArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnReceived);
-						
-				socketToken = new SocketToken(clientSocket, bufferSize, connectArgs, sendArgs, receiveArgs);
-				socketToken.socketState = SocketState.DISPOSABLE_READY;
-				
-				// not start connecting yet.
-			} catch (Exception e) {
-				SocketClosed(this, "failed to create additioal socket.", e);
-			}
-		}
-		
-		public DisquuunSocket (IPEndPoint endPoint, long bufferSize, Action<DisquuunSocket, string> SocketOpenedAct, Action<DisquuunSocket, string, Exception> SocketClosedAct) {
+		public DisquuunSocket (
+			Action<DisquuunSocket, string> SocketOpenedAct,
+			Action<DisquuunSocket> SocketReloadedAct,
+			Action<DisquuunSocket, string, Exception> SocketClosedAct
+		) {
 			this.socketId = Guid.NewGuid().ToString();
 			
 			this.SocketOpened = SocketOpenedAct;
+			this.SocketReloaded = SocketReloadedAct;
 			this.SocketClosed = SocketClosedAct;
-			
+		}
+
+		public void Connect (IPEndPoint endPoint, long bufferSize) {
 			try {
 				var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 				clientSocket.NoDelay = true;
@@ -141,8 +117,12 @@ namespace DisquuunCore
 			}
 		}
 		
-		public void StartConnectAsync (Socket clientSocket, SocketAsyncEventArgs connectArgs) {
-			if (!clientSocket.ConnectAsync(socketToken.connectArgs)) OnConnect(clientSocket, connectArgs);
+		private void StartConnectAsync (Socket clientSocket, SocketAsyncEventArgs connectArgs) {
+			try {
+				if (!clientSocket.ConnectAsync(socketToken.connectArgs)) OnConnect(clientSocket, connectArgs);
+			} catch (Exception e) {
+				SocketClosed(this, "failed to try connect.", e);
+			}
 		}
 		
 		/*
@@ -153,7 +133,9 @@ namespace DisquuunCore
 			method for Sync execution of specific Disque command.
 			DEPRECATED. only use for testing.
 		*/
-		public DisquuunResult[] DEPRECATED_Sync (DisqueCommand command, byte[] data) {
+		public override DisquuunResult[] DEPRECATED_Sync (DisqueCommand command, byte[] data) {
+			try {
+
 			socketToken.socket.Send(data);
 			
 			var currentLength = 0;
@@ -177,8 +159,8 @@ namespace DisquuunCore
 				socketToken.socket.Receive(socketToken.receiveBuffer, currentLength, available, SocketFlags.None);
 				currentLength = currentLength + available;
 				
-				scanResult = DisquuunAPI.ScanBuffer(command, socketToken.receiveBuffer, currentLength, socketId);
-				if (scanResult.cursor == currentLength) break;
+				scanResult = DisquuunAPI.ScanBuffer(command, socketToken.receiveBuffer, 0, currentLength, socketId);
+				if (scanResult.isDone) break;
 				
 				// continue reading data from socket.
 				// if need, prepare for next 1 byte.
@@ -189,28 +171,20 @@ namespace DisquuunCore
 			
 			socketToken.socketState = SocketState.OPENED;
 			return scanResult.data;
+			
+			}catch (Exception e) {
+				Disquuun.Log("e:" + e, true);
+				throw e;
+			}
 		}
 		
 		/**
 			method for Async execution of specific Disque command.
 		*/
-		public void Async (DisqueCommand command, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback) {
+		public override void Async (Queue<DisqueCommand> commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback) {
 			switch (socketToken.socketState) {
 				case SocketState.BUSY: {
-					StartReceiveAndSendDataAsync(command, data, Callback);
-					break;
-				}
-				case SocketState.DISPOSABLE_READY: {
-					// ready disposable connect callback.
-					Action<object, SocketAsyncEventArgs> OnConnectedAdditional = (object unused, SocketAsyncEventArgs args) => {
-						socketToken.socketState = SocketState.DISPOSABLE_BUSY;
-						StartReceiveAndSendDataAsync(command, data, Callback);
-					};
-					
-					socketToken.connectArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnConnectedAdditional);
-					socketToken.socketState = SocketState.DISPOSABLE_OPENING;
-					
-					StartConnectAsync(socketToken.socket, socketToken.connectArgs);
+					StartReceiveAndSendDataAsync(commands, data, Callback);
 					break;
 				}
 			}
@@ -219,65 +193,66 @@ namespace DisquuunCore
 		/**
 			method for start Looping of specific Disque command.
 		*/
-		public void Loop (DisqueCommand command, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback) {
+		public override void Loop (Queue<DisqueCommand> commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback) {
 			switch (socketToken.socketState) {
 				case SocketState.BUSY: {
-					StartReceiveAndSendDataAsync(command, data, Callback);
-					break;
-				}
-				case SocketState.DISPOSABLE_READY: {
-					// ready disposable connect callback.
-					Action<object, SocketAsyncEventArgs> OnConnectedDisposable = (object unused, SocketAsyncEventArgs args) => {
-						socketToken.socketState = SocketState.DISPOSABLE_BUSY;
-						StartReceiveAndSendDataAsync(command, data, Callback);
-					};
-					
-					socketToken.connectArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnConnectedDisposable);
-					socketToken.socketState = SocketState.DISPOSABLE_OPENING;
-					
-					StartConnectAsync(socketToken.socket, socketToken.connectArgs);
+					StartReceiveAndSendDataAsync(commands, data, Callback);
 					break;
 				}
 			}
 		}
 
+		/**
+			method for execute pipelined commands.
+		*/
+		public override void Execute (Queue<DisqueCommand> commands, byte[] wholeData, Func<DisqueCommand, DisquuunResult[], bool> Callback) {
+			switch (socketToken.socketState) {
+				case SocketState.BUSY: {
+					StartReceiveAndSendDataAsync(commands, wholeData, Callback);
+					break;
+				}
+			}
+		}
+
+
 		/*
 			default pooled socket + disposable socket shared 
 		*/
-		private void StartReceiveAndSendDataAsync (DisqueCommand command, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback) {
+		private void StartReceiveAndSendDataAsync (Queue<DisqueCommand> commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback) {
+			try {
 			// ready for receive.
 			socketToken.readableDataLength = 0;
 
 			socketToken.receiveArgs.SetBuffer(socketToken.receiveBuffer, 0, socketToken.receiveBuffer.Length);
 			if (!socketToken.socket.ReceiveAsync(socketToken.receiveArgs)) OnReceived(socketToken.socket, socketToken.receiveArgs);
 			
-			socketToken.currentCommand = command;
+			// if multiple commands exist, set as pipeline.
+			if (1 < commands.Count) socketToken.isPipeline = true; 
+
+			socketToken.currentCommands = commands;
 			socketToken.currentSendingBytes = data;
 			socketToken.AsyncCallback = Callback;
 
 			try {
 				socketToken.sendArgs.SetBuffer(data, 0, data.Length);
-			} catch (Exception e) {
-				Disquuun.Log("sendArgs setBuffer error:" + e);
-
+			} catch {
 				// renew. potential error is exists and should avoid this error.
-				var endPoint = socketToken.sendArgs.RemoteEndPoint;
-				socketToken.sendArgs = new SocketAsyncEventArgs();
+				var sendArgs = new SocketAsyncEventArgs();
+				sendArgs.RemoteEndPoint = socketToken.receiveArgs.RemoteEndPoint;
+				sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
+				sendArgs.UserToken = socketToken;
 
-				socketToken.sendArgs.RemoteEndPoint = endPoint;
-				socketToken.sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
-			}		
-			if (!socketToken.socket.SendAsync(socketToken.sendArgs)) OnSend(socketToken.socket, socketToken.sendArgs); 
+				socketToken.sendArgs = sendArgs;
+				socketToken.sendArgs.SetBuffer(data, 0, data.Length);
+			}
+
+			if (!socketToken.socket.SendAsync(socketToken.sendArgs)) OnSend(socketToken.socket, socketToken.sendArgs);
+			
+			} catch (Exception e1) {
+				Disquuun.Log("StartReceiveAndSendDataAsync error:" + e1.Message, true);
+			} 
 		}
 		
-		private void StartCloseAsync () {
-			var closeEventArgs = new SocketAsyncEventArgs();
-			closeEventArgs.UserToken = socketToken;
-			closeEventArgs.AcceptSocket = socketToken.socket;
-			closeEventArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnClosed);
-			
-			if (!socketToken.socket.DisconnectAsync(closeEventArgs)) OnClosed(socketToken.socket, closeEventArgs);
-		}
 		
 		/*
 			handlers
@@ -293,17 +268,20 @@ namespace DisquuunCore
 						SocketClosed(this, "connect failed.", error);
 						return;
 					}
-					
-					token.socketState = SocketState.OPENED;
-					SocketOpened(this, socketId);
-					return;
+					// lock (socketLockObject) {
+						token.socketState = SocketState.OPENED;
+						SocketOpened(this, socketId);
+						return;
+					// }
 				}
 				default: {
 					throw new Exception("socket state does not correct:" + token.socketState);
 				}
 			}
 		}
+
 		private void OnClosed (object unused, SocketAsyncEventArgs args) {
+		
 			var token = (SocketToken)args.UserToken;
 			switch (token.socketState) {
 				case SocketState.CLOSED: {
@@ -318,10 +296,12 @@ namespace DisquuunCore
 		}
 		
 		private void OnSend (object unused, SocketAsyncEventArgs args) {
+			try {
 			switch (args.SocketError) {
 				case SocketError.Success: {
 					var token = args.UserToken as SocketToken;
 					
+				
 					switch (token.socketState) {
 						case SocketState.BUSY: {
 							token.socketState = SocketState.SENDED;
@@ -338,44 +318,25 @@ namespace DisquuunCore
 								if (!token.socket.SendAsync(token.sendArgs)) OnSend(token.socket, token.sendArgs);
 								return;
 							}
-							
+
 							token.socketState = SocketState.OPENED;
+							SocketReloaded(this);
 							return;
-						}
-
-
-						case SocketState.DISPOSABLE_BUSY: {
-							token.socketState = SocketState.DISPOSABLE_SENDED;
-							break;
-						}
-						case SocketState.DISPOSABLE_RECEIVED: {
-							if (token.continuation) {
-								// token.socketState = SocketState.DISPOSABLE_BUSY;
-
-								// ready for next loop receive.
-								token.readableDataLength = 0;
-								token.receiveArgs.SetBuffer(token.receiveBuffer, 0, token.receiveBuffer.Length);
-								if (!token.socket.ReceiveAsync(token.receiveArgs)) OnReceived(token.socket, token.receiveArgs);
-
-								token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
-								if (!token.socket.SendAsync(token.sendArgs)) OnSend(token.socket, token.sendArgs);
-								return;
-							}
-							
-							StartCloseAsync();
-							break;
 						}
 					}
 					return;
 				}
 				default: {
-					Disquuun.Log("onsend error, " + args.SocketError);
+					Disquuun.Log("onsend error, " + args.SocketError, true);
 					// if (Error != null) {
 					// 	var error = new Exception("send error:" + socketError.ToString());
 					// 	Error(error);
 					// }
 					return;
 				}
+			}
+			} catch (Exception e) {
+				Disquuun.Log("OnSend e:" + e, true);
 			}
 		}
 
@@ -391,21 +352,22 @@ namespace DisquuunCore
 						return;
 					}
 					default: {
-						// show error, then close or continue receiving.
-						Disquuun.Log("onReceive error:" + args.SocketError);
-						// if (Error != null) {
-						// 	var error = new Exception("receive error:" + args.SocketError.ToString() + " size:" + args.BytesTransferred);
-						// 	Error(error);
-						// }
-						
-						// connection is already closed.
-						if (!IsSocketConnected(token.socket)) {
-							Disconnect();
-							return;
+						switch (args.SocketError) {
+							case SocketError.ConnectionReset: {
+								Disquuun.Log("ConnectionResetが出てる. " + " token.socketState:" + token.socketState, true);
+								break;
+							}
+							default: {
+								Disquuun.Log("onReceive default token.socketState:" + token.socketState + " error:" + args.SocketError, true);
+								break;
+							}
 						}
-						
-						// continue receiving data. go to below.
-						break;
+
+						Disconnect();
+
+						var e1 = new Exception("receive status is not good.");
+						SocketClosed(this, "failed to receive.", e1);
+						return;
 					}
 				}
 			}
@@ -414,52 +376,108 @@ namespace DisquuunCore
 
 			var bytesAmount = args.BytesTransferred;
 			
-			// update as read completed.
+			// update token-dataLength as read completed.
 			token.readableDataLength = token.readableDataLength + bytesAmount;
+			
+			if (token.isPipeline) PipelineReceive(token); 
+			else LoopOrAsyncReceive(token);
+		}
 
-			var result = DisquuunAPI.ScanBuffer(token.currentCommand, token.receiveBuffer, token.readableDataLength, socketId);
+		private void PipelineReceive (SocketToken token) {
+			var fromCursor = 0;
+			
+			/*
+				read data from receiveBuffer by moving fromCursor.
+			*/
+			while (true) {
+				var currentCommand = token.currentCommands.Peek();
+				var result = DisquuunAPI.ScanBuffer(currentCommand, token.receiveBuffer, fromCursor, token.readableDataLength, socketId);
 
-			// data is totally read and executable.
-			if (result.cursor == token.readableDataLength) {
-				var continuation = token.AsyncCallback(token.currentCommand, result.data);
+				if (result.isDone) {	
+					token.AsyncCallback(currentCommand, result.data);
 
+					// deque as read done.
+					token.currentCommands.Dequeue();
+					
+					if (token.currentCommands.Count == 0) {
+						// pipelining is over.
+						switch (token.socketState) {
+							case SocketState.BUSY: {
+								token.socketState = SocketState.RECEIVED;
+								break;
+							}
+							case SocketState.SENDED: {
+								token.socketState = SocketState.OPENED;
+								SocketReloaded(this);
+								break;
+							}
+							default: {
+								break;
+							}
+						}
+						return;
+					}
+
+					// commands are still remained.
+
+					// got all data is just consumed. get rest from outside.
+					if (fromCursor == token.readableDataLength) {
+						StartContinueReceiving(token, 0);
+						return;
+					}
+					
+					// rest pipeline commands and received data is exists in buffer. 
+					fromCursor = result.cursor;
+					continue;
+				}
+
+				/*
+					reading is not completed. the fragment of command exists.
+				*/
+				
+				var fragmentDataLength = token.readableDataLength - fromCursor;
+				
+				// move fragment data to head of buffer.
+				Buffer.BlockCopy(token.receiveBuffer, fromCursor, token.receiveBuffer, 0, fragmentDataLength);
+				
+				StartContinueReceiving(token, fragmentDataLength);
+				break;
+			}
+		}
+
+		private void LoopOrAsyncReceive (SocketToken token) {
+			var currentCommand = token.currentCommands.Peek();
+			var result = DisquuunAPI.ScanBuffer(currentCommand, token.receiveBuffer, 0, token.readableDataLength, socketId);
+
+			if (result.isDone && result.cursor == token.readableDataLength) {
 				// update continuation status.
-				token.continuation = continuation;
+				token.continuation = token.AsyncCallback(currentCommand, result.data);
 
-				if (continuation) {
+				if (token.continuation) {
 					switch (token.socketState) {
 						case SocketState.BUSY: {
 							token.socketState = SocketState.RECEIVED;
 							break;
 						}
 						case SocketState.SENDED: {
-							// token.socketState = SocketState.BUSY;
-
 							// ready for next loop receive.
 							token.readableDataLength = 0;
 							token.receiveArgs.SetBuffer(token.receiveBuffer, 0, token.receiveBuffer.Length);
 							if (!token.socket.ReceiveAsync(token.receiveArgs)) OnReceived(token.socket, token.receiveArgs);
 							
-							token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
-							if (!token.socket.SendAsync(token.sendArgs)) OnSend(token.socket, token.sendArgs);
-							break;
-						}
+							try {
+								token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
+							} catch {
+								var sendArgs = new SocketAsyncEventArgs();
+								sendArgs.RemoteEndPoint = token.receiveArgs.RemoteEndPoint;
+								sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
+								sendArgs.UserToken = token;
+								token.sendArgs = sendArgs;
+								token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
+							}
 
-						// disposable.
-						case SocketState.DISPOSABLE_BUSY: {
-							token.socketState = SocketState.DISPOSABLE_RECEIVED;
-							break;
-						}
-						case SocketState.DISPOSABLE_SENDED: {
-							// token.socketState = SocketState.DISPOSABLE_BUSY;
-
-							// ready for next loop receive.
-							token.readableDataLength = 0;
-							token.receiveArgs.SetBuffer(token.receiveBuffer, 0, token.receiveBuffer.Length);
-							if (!token.socket.ReceiveAsync(token.receiveArgs)) OnReceived(token.socket, token.receiveArgs);
-							
-							token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
 							if (!token.socket.SendAsync(token.sendArgs)) OnSend(token.socket, token.sendArgs);
+
 							break;
 						}
 						default: {
@@ -469,9 +487,9 @@ namespace DisquuunCore
 					}
 					return;
 				}
-
+				
 				// end of loop or end of async.
-
+			
 				switch (token.socketState) {
 					case SocketState.BUSY: {
 						token.socketState = SocketState.RECEIVED;
@@ -479,17 +497,7 @@ namespace DisquuunCore
 					}
 					case SocketState.SENDED: {
 						token.socketState = SocketState.OPENED;
-						break;
-					}
-
-					// disposable.
-					case SocketState.DISPOSABLE_BUSY: {
-						token.socketState = SocketState.DISPOSABLE_RECEIVED;
-						break;
-					}
-					case SocketState.DISPOSABLE_SENDED: {
-						// disposable connection should be close after used.
-						StartCloseAsync();
+						SocketReloaded(this);
 						break;
 					}
 					default: {
@@ -501,6 +509,20 @@ namespace DisquuunCore
 
 			// not yet received all data.
 			// continue receiving.
+
+			StartContinueReceiving(token, token.readableDataLength);
+		}
+
+		private void StartContinueReceiving (SocketToken token, int receiveAfterFragmentIndex) {
+			// set already got data length to set param.
+			token.readableDataLength = receiveAfterFragmentIndex;
+			
+			/*
+				get readable size of already received data for next read=OnReceived.
+				resize if need.
+			*/
+			var nextAdditionalBytesLength = token.socket.Available;
+			if (receiveAfterFragmentIndex == token.receiveBuffer.Length) Array.Resize(ref token.receiveBuffer, token.receiveArgs.Buffer.Length + nextAdditionalBytesLength);
 
 			/*
 				note that,
@@ -528,42 +550,25 @@ namespace DisquuunCore
 				
 				socket.SetBuffer([bufferAsPointer], additionalDataOffset, receiveSizeLimit)
 			*/
-			
-			var nextAdditionalBytesLength = token.socket.Available;
-			
-			if (token.readableDataLength == token.receiveBuffer.Length) Array.Resize(ref token.receiveBuffer, token.receiveArgs.Buffer.Length + nextAdditionalBytesLength);
-			
-			var receivableCount = token.receiveBuffer.Length - token.readableDataLength;
-			token.receiveArgs.SetBuffer(token.receiveBuffer, token.readableDataLength, receivableCount);
+			var receivableCount = token.receiveBuffer.Length - receiveAfterFragmentIndex;
+
+			// should set token.receiveBuffer to receiveArgs. because it was resized or not.
+			// and of cource this SetBuffer is for setting receivableCount.
+			token.receiveArgs.SetBuffer(token.receiveBuffer, receiveAfterFragmentIndex, receivableCount);
 
 			if (!token.socket.ReceiveAsync(token.receiveArgs)) OnReceived(token.socket, token.receiveArgs);
 		}
-		
-		public void Disconnect (bool force=false) {
-			if (force) {
-				try {
-					socketToken.socketState = SocketState.CLOSING;
-					socketToken.socket.Close();
-					socketToken.socketState = SocketState.CLOSED;
-				} catch (Exception e) {
-					Disquuun.Log("Disconnect e:" + e);
-				}
-				return;
+
+		public void Disconnect () {
+			try {
+				socketToken.socketState = SocketState.CLOSING;
+				socketToken.socket.Shutdown(SocketShutdown.Both);
+				socketToken.socket.Dispose();
+				socketToken.socketState = SocketState.CLOSED;
+			} catch (Exception e) {
+				Disquuun.Log("Disconnect e:" + e.Message, true);
 			}
-			
-			switch (socketToken.socketState) {
-				case SocketState.CLOSING:
-				case SocketState.CLOSED: {
-					// do nothing
-					break;
-				}
-				default: {
-					socketToken.socketState = SocketState.CLOSING;
-					
-					StartCloseAsync();
-					break;
-				}
-			}
+			return;
 		}
 		
 		/*
@@ -578,18 +583,83 @@ namespace DisquuunCore
 			
 			return true;
 		}
-	}	
+	}
+
+	public struct StackCommandData {
+		public readonly DisquuunExecuteType executeType;
+		public readonly Queue<DisqueCommand> commands;
+		public readonly byte[] data;
+		public readonly Func<DisqueCommand, DisquuunResult[], bool> Callback;
+		
+		public StackCommandData (DisquuunExecuteType executeType, Queue<DisqueCommand> commands, byte[] dataSource, Func<DisqueCommand, DisquuunResult[], bool> Callback) {
+			this.executeType = executeType;
+			this.commands = commands;
+			this.data = dataSource;
+			this.Callback = Callback;
+		}
+	}
 	
+	public class StackSocket {
+		private object stackLockObject = new object();
+
+		private Queue<StackCommandData> stackedDataQueue;
+
+		public int QueueCount () {
+			lock (stackLockObject) {
+				return stackedDataQueue.Count;
+			}
+		}
+
+		public bool IsQueued () {
+			lock (stackLockObject) {
+				if (0 < stackedDataQueue.Count) return true;
+				return false;
+			}
+		}
+		public StackCommandData Dequeue () {
+			lock (stackLockObject) {
+				return stackedDataQueue.Dequeue();
+			}
+		}
+
+		public StackSocket () {
+			this.stackedDataQueue = new Queue<StackCommandData>();
+		}
+
+		public virtual DisquuunResult[] DEPRECATED_Sync (DisqueCommand command, byte[] data) {
+			throw new Exception("deprecated & all sockets are using.");
+		}
+
+		public virtual void Async (Queue<DisqueCommand> commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback) {
+			lock (stackLockObject) this.stackedDataQueue.Enqueue(new StackCommandData(DisquuunExecuteType.ASYNC, commands, data, Callback));
+		}
+
+		public virtual void Loop (Queue<DisqueCommand> commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback) {
+			lock (stackLockObject) this.stackedDataQueue.Enqueue(new StackCommandData(DisquuunExecuteType.LOOP, commands, data, Callback));
+		}
+
+		public virtual void Execute (Queue<DisqueCommand> commands, byte[] wholeData, Func<DisqueCommand, DisquuunResult[], bool> Callback) {
+			lock (stackLockObject) this.stackedDataQueue.Enqueue(new StackCommandData(DisquuunExecuteType.PIPELINE, commands, wholeData, Callback));
+		}
+	}
+
+
+	/**
+		extension definition for DisquuunSocket.
+	*/
 	public static class DisquuunExtension {
 		public static DisquuunResult[] DEPRICATED_Sync (this DisquuunInput input) {	
-			var socket = input.socket;
+			var socket = input.socketPool.ChooseAvailableSocket();
 			return socket.DEPRECATED_Sync(input.command, input.data);
 		}
 		
-		public static void Async (this DisquuunInput input, Action<DisqueCommand, DisquuunResult[]> Callback) {	
-			var socket = input.socket;
+		public static void Async (this DisquuunInput input, Action<DisqueCommand, DisquuunResult[]> Callback) {
+			var socket = input.socketPool.ChooseAvailableSocket();
+			var commands = new Queue<DisqueCommand>();
+			commands.Enqueue(input.command);
+
 			socket.Async(
-				input.command, 
+				commands, 
 				input.data, 
 				(command, resultBytes) => {
 					Callback(command, resultBytes);
@@ -599,8 +669,36 @@ namespace DisquuunCore
 		}
 		
 		public static void Loop (this DisquuunInput input, Func<DisqueCommand, DisquuunResult[], bool> Callback) {	
-			var socket = input.socket;
-			socket.Loop(input.command, input.data, Callback);
+			var socket = input.socketPool.ChooseAvailableSocket();
+			var commands = new Queue<DisqueCommand>();
+			commands.Enqueue(input.command);
+			
+			socket.Loop(commands, input.data, Callback);
+		}
+
+		public static void Execute (this List<DisquuunInput> inputs, Action<DisqueCommand, DisquuunResult[]> Callback) {
+			if (!inputs.Any()) return;
+			var socket = inputs[0].socketPool.ChooseAvailableSocket();
+			
+			var commands = new Queue<DisqueCommand>();
+			foreach (var input in inputs) commands.Enqueue(input.command);
+
+			using (var memStream = new MemoryStream()) {
+				foreach (var input in inputs) memStream.Write(input.data, 0, input.data.Length);
+				var wholeData = memStream.ToArray();
+
+				socket.Execute(
+					commands, 
+					wholeData,
+					(command, resultBytes) => {
+						Callback(command, resultBytes);
+						return false;
+					}
+				);
+			}
+
+			inputs.Clear();
 		}
 	}
+
 }

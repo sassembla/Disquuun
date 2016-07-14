@@ -9,7 +9,7 @@ using DisquuunCore.Deserialize;
 
 public partial class Tests {
 	public void _4_0_ByfferOverWithSingleSyncGetJob_Sync (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_4_0_ByfferOverWithSingleSyncGetJob_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var queueId = Guid.NewGuid().ToString();
 		
@@ -17,7 +17,7 @@ public partial class Tests {
 		
 		var result = disquuun.GetJob(new string[]{queueId}).DEPRICATED_Sync();
 		var jobDatas = DisquuunDeserializer.GetJob(result);
-		Assert(1, jobDatas.Length, "not match.");
+		Assert("_4_0_ByfferOverWithSingleSyncGetJob_Sync", 1, jobDatas.Length, "not match.");
 		
 		// ack in.
 		var jobIds = jobDatas.Select(job => job.jobId).ToArray();
@@ -25,7 +25,7 @@ public partial class Tests {
 	}
 	
 	public void _4_1_ByfferOverWithMultipleSyncGetJob_Sync (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_4_1_ByfferOverWithMultipleSyncGetJob_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var queueId = Guid.NewGuid().ToString();
 		
@@ -34,7 +34,7 @@ public partial class Tests {
 		
 		var result = disquuun.GetJob(new string[]{queueId}, "COUNT", addJobCount).DEPRICATED_Sync();
 		var jobDatas = DisquuunDeserializer.GetJob(result);
-		Assert(addJobCount, jobDatas.Length, "not match.");
+		Assert("_4_1_ByfferOverWithMultipleSyncGetJob_Sync", addJobCount, jobDatas.Length, "not match.");
 		
 		// ack in.
 		var jobIds = jobDatas.Select(job => job.jobId).ToArray();
@@ -42,7 +42,7 @@ public partial class Tests {
 	}
 	
 	public void _4_2_ByfferOverWithSokcetOverSyncGetJob_Sync (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_4_2_ByfferOverWithSokcetOverSyncGetJob_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var queueId = Guid.NewGuid().ToString();
 		
@@ -51,7 +51,7 @@ public partial class Tests {
 		
 		var result = disquuun.GetJob(new string[]{queueId}, "COUNT", addJobCount).DEPRICATED_Sync();
 		var jobDatas = DisquuunDeserializer.GetJob(result);
-		Assert(addJobCount, jobDatas.Length, "not match.");
+		Assert("_4_2_ByfferOverWithSokcetOverSyncGetJob_Sync", addJobCount, jobDatas.Length, "not match.");
 		
 		// ack in.
 		var jobIds = jobDatas.Select(job => job.jobId).ToArray();
@@ -59,7 +59,7 @@ public partial class Tests {
 	}
 	
 	public void _4_3_ByfferOverWithSingleSyncGetJob_Async (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_4_3_ByfferOverWithSingleSyncGetJob_Async", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var queueId = Guid.NewGuid().ToString();
 		
@@ -72,7 +72,7 @@ public partial class Tests {
 			}
 		);
 		
-		WaitUntil(() => (jobDatas.Length == 1), 5);
+		WaitUntil("_4_3_ByfferOverWithSingleSyncGetJob_Async", () => (jobDatas.Length == 1), 5);
 		
 		// ack in.
 		var jobIds = jobDatas.Select(job => job.jobId).ToArray();
@@ -80,7 +80,7 @@ public partial class Tests {
 	}
 	
 	public void _4_4_ByfferOverWithMultipleSyncGetJob_Async (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_4_4_ByfferOverWithMultipleSyncGetJob_Async", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var queueId = Guid.NewGuid().ToString();
 		
@@ -94,7 +94,7 @@ public partial class Tests {
 			}
 		);
 		
-		WaitUntil(() => (jobDatas.Length == addJobCount), 5);
+		WaitUntil("_4_4_ByfferOverWithMultipleSyncGetJob_Async", () => (jobDatas.Length == addJobCount), 5);
 		
 		// ack in.
 		var jobIds = jobDatas.Select(job => job.jobId).ToArray();
@@ -102,7 +102,7 @@ public partial class Tests {
 	}
 	
 	public void _4_5_ByfferOverWithSokcetOverSyncGetJob_Async (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_4_5_ByfferOverWithSokcetOverSyncGetJob_Async", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var queueId = Guid.NewGuid().ToString();
 		
@@ -116,7 +116,7 @@ public partial class Tests {
 			}
 		);
 		
-		WaitUntil(() => (jobDatas.Length == addJobCount), 5);
+		WaitUntil("_4_5_ByfferOverWithSokcetOverSyncGetJob_Async", () => (jobDatas.Length == addJobCount), 5);
 		
 		// ack in.
 		var jobIds = jobDatas.Select(job => job.jobId).ToArray();

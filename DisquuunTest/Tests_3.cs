@@ -9,7 +9,7 @@ using DisquuunCore.Deserialize;
 
 public partial class Tests {
 	public void _3_0_Nested2AsyncSocket (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_3_0_Nested2AsyncSocket", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var jobId1 = string.Empty;
 		
@@ -29,14 +29,14 @@ public partial class Tests {
 			}
 		);
 		
-		WaitUntil(() => (!string.IsNullOrEmpty(queueId1) && !string.IsNullOrEmpty(queueId2)), 5);
+		WaitUntil("_3_0_Nested2AsyncSocket", () => (!string.IsNullOrEmpty(queueId1) && !string.IsNullOrEmpty(queueId2)), 5);
 		
 		var done = false;
 		disquuun.GetJob(new string[]{queueId1, queueId2}, "count", 2).Async(
 			(command, data) => {
 				var gets = DisquuunDeserializer.GetJob(data);
 				
-				Assert(2, gets.Length, "not match.");
+				Assert("_3_0_Nested2AsyncSocket", 2, gets.Length, "not match.");
 				
 				disquuun.FastAck(gets.Select(job => job.jobId).ToArray()).Async(
 					(c, d) => {
@@ -46,11 +46,14 @@ public partial class Tests {
 			}	
 		);
 		
-		WaitUntil(() => done, 5);
+		WaitUntil("_3_0_Nested2AsyncSocket", () => done, 5);
 	}
 	
+
+	private object _3_1_NestedMultipleAsyncSocketLockObject = new object();
+
 	public void _3_1_NestedMultipleAsyncSocket (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_3_1_NestedMultipleAsyncSocket", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		var queueId = Guid.NewGuid().ToString();
 		var addGetFastAckCount = 100;
@@ -59,21 +62,21 @@ public partial class Tests {
 		for (var i = 0; i < addGetFastAckCount; i++) {
 			disquuun.AddJob(queueId, new byte[10]).Async(
 				(c1, d1) => {
-					Assert(DisqueCommand.ADDJOB, c1, "command mismatch.");
+					Assert("_3_1_NestedMultipleAsyncSocket", DisqueCommand.ADDJOB, c1, "command mismatch.");
 					disquuun.GetJob(new string[]{queueId}).Async(
 						(c2, d2) => {
-							Assert(DisqueCommand.GETJOB, c2, "command mismatch.");
+							Assert("_3_1_NestedMultipleAsyncSocket", DisqueCommand.GETJOB, c2, "command mismatch.");
 							var gotJobs = DisquuunDeserializer.GetJob(d2);
 							var gotJobId = gotJobs[0].jobId;
 							var gotJobData = gotJobs[0].jobData;
-							Assert(10, gotJobData.Length, "not match.");
+							Assert("_3_1_NestedMultipleAsyncSocket", 10, gotJobData.Length, "not match.");
 							
 							disquuun.FastAck(new string[]{gotJobId}).Async(
 								(c3, d3) => {
-									Assert(DisqueCommand.FASTACK, c3, "command mismatch.");
+									Assert("_3_1_NestedMultipleAsyncSocket", DisqueCommand.FASTACK, c3, "command mismatch.");
 									var fastackResult = DisquuunDeserializer.FastAck(d3);
-									Assert(1, fastackResult, "not match.");
-									resultCount++;
+									Assert("_3_1_NestedMultipleAsyncSocket", 1, fastackResult, "not match.");
+									lock (_3_1_NestedMultipleAsyncSocketLockObject) resultCount++;
 								}
 							);
 						}
@@ -83,6 +86,6 @@ public partial class Tests {
 		}
 		
 		
-		WaitUntil(() => (resultCount == addGetFastAckCount), 10);
+		WaitUntil("_3_1_NestedMultipleAsyncSocket", () => (resultCount == addGetFastAckCount), 10);
 	}
 }

@@ -5,12 +5,12 @@ using DisquuunCore;
 using DisquuunCore.Deserialize;
 
 /*
-	
+	send done after received reproducible case.
 */
 
 public partial class Tests {
 	public void _8_0_LargeSizeSendThenSmallSizeSendMakeEmitOnSendAfterOnReceived (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_8_0_LargeSizeSendThenSmallSizeSendMakeEmitOnSendAfterOnReceived", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		for (var i = 0; i < 100; i++) {
 			var queueId = Guid.NewGuid().ToString();
@@ -26,7 +26,7 @@ public partial class Tests {
 				}
 			);
 
-			WaitUntil(() => (sended), 5);
+			WaitUntil("_8_0_LargeSizeSendThenSmallSizeSendMakeEmitOnSendAfterOnReceived", () => (sended), 5);
 
 			var fastacked = false;
 			disquuun.GetJob(new string[]{queueId}, "count", 2).Async(
@@ -41,12 +41,12 @@ public partial class Tests {
 				}
 			);
 
-			WaitUntil(() => fastacked, 5);
+			WaitUntil("_8_0_LargeSizeSendThenSmallSizeSendMakeEmitOnSendAfterOnReceived", () => fastacked, 5);
 		}
 	}
 	
 	public void _8_1_LargeSizeSendThenSmallSizeSendLoopMakeEmitOnSendAfterOnReceived (Disquuun disquuun) {
-		WaitUntil(() => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		WaitUntil("_8_1_LargeSizeSendThenSmallSizeSendLoopMakeEmitOnSendAfterOnReceived", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
 		for (var i = 0; i < 100; i++) {
 			var queueId = Guid.NewGuid().ToString();
@@ -65,7 +65,7 @@ public partial class Tests {
 				}
 			);
 
-			WaitUntil(() => (index == 2), 1);
+			WaitUntil("_8_1_LargeSizeSendThenSmallSizeSendLoopMakeEmitOnSendAfterOnReceived", () => (index == 2), 1);
 			
 			var fastacked = false;
 			disquuun.GetJob(new string[]{queueId}, "count", 20).Async(
@@ -80,7 +80,7 @@ public partial class Tests {
 				}
 			);
 			
-			WaitUntil(() => fastacked, 1);
+			WaitUntil("_8_1_LargeSizeSendThenSmallSizeSendLoopMakeEmitOnSendAfterOnReceived", () => fastacked, 1);
 		}
 	}
 }

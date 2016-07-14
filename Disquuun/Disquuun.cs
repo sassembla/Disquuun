@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 
 namespace DisquuunCore {
@@ -29,15 +30,16 @@ namespace DisquuunCore {
 	public class DisquuunInput	{
 		public readonly DisqueCommand command;
 		public readonly byte[] data;
-		public readonly DisquuunSocket socket;
+		public readonly DisquuunSocketPool socketPool;
 		
-		public DisquuunInput (DisqueCommand command, byte[] data, DisquuunSocket socket) {
+		public DisquuunInput (DisqueCommand command, byte[] data, DisquuunSocketPool socketPool) {
 			this.command = command;
 			this.data = data;
-			this.socket = socket;
+			this.socketPool = socketPool;
 		}
 	}
 	
+
 	/**
 		data structure for result.
 	*/
@@ -47,6 +49,12 @@ namespace DisquuunCore {
 		public DisquuunResult (params ArraySegment<byte>[] bytesArray) {
 			this.bytesArray = bytesArray;
 		}
+	}
+
+	public enum DisquuunExecuteType {
+		ASYNC,
+		LOOP,
+		PIPELINE
 	}
 	
     public class Disquuun {
@@ -60,15 +68,16 @@ namespace DisquuunCore {
 		
 		private readonly Action<string> ConnectionOpened;
 		private readonly Action<string, Exception> ConnectionFailed;
-		private readonly Action ConnectionIncreased;
 		
-		private DisquuunSocket[] socketPool;
-		private object lockObject = new object();
+		private DisquuunSocketPool socketPool;
 		
-		private readonly int minConnectionCount;
+		public readonly int minConnectionCount;
+
 
 		public enum ConnectionState {
+			OPENING,
 			OPENED,
+			OPENED_RECOVERING,
 			ALLCLOSING,
 			ALLCLOSED
 		}
@@ -79,16 +88,15 @@ namespace DisquuunCore {
 			long bufferSize,
 			int minConnectionCount,
 			Action<string> ConnectionOpenedAct=null,
-			Action<string, Exception> ConnectionFailedAct=null,
-			Action ConnectionIncreasedAct=null
+			Action<string, Exception> ConnectionFailedAct=null
 		) {
 			this.connectionId = Guid.NewGuid().ToString();
 			
 			this.bufferSize = bufferSize;
 			this.endPoint = new IPEndPoint(IPAddress.Parse(host), port);
 			
-			this.connectionState = ConnectionState.ALLCLOSED;
-			
+			this.connectionState = ConnectionState.OPENING;
+
 			/*
 				ConnectionOpened handler treats all connections are opened.
 			*/
@@ -103,82 +111,67 @@ namespace DisquuunCore {
 			if (ConnectionFailedAct != null) this.ConnectionFailed = ConnectionFailedAct;
 			else this.ConnectionFailed = (info, e) => {};
 			
-
-			if (ConnectionIncreasedAct != null) this.ConnectionIncreased = ConnectionIncreasedAct;
-			else this.ConnectionIncreased = () => {};
-
 			this.minConnectionCount = minConnectionCount;
+			
+			this.socketPool = new DisquuunSocketPool(minConnectionCount, this.OnSocketOpened, this.OnSocketConnectionFailed);
 
-			socketPool = new DisquuunSocket[minConnectionCount];
-			for (var i = 0; i < minConnectionCount; i++) socketPool[i] = new DisquuunSocket(endPoint, bufferSize, OnSocketOpened, OnSocketConnectionFailed);
+			this.socketPool.Connect(endPoint, bufferSize);
 		}
-		
-		private void OnSocketOpened (DisquuunSocket source, string socketId) {
-			lock (lockObject) {
-				var availableSocketCount = 0;
-				for (var i = 0; i < socketPool.Length; i++) {
-					var socket = socketPool[i];
-					if (socket == null) return;
-					if (socket.State() == DisquuunSocket.SocketState.OPENED) availableSocketCount++;
-				}
 
-				if (availableSocketCount == minConnectionCount) ConnectionOpened(connectionId);
+		public int StackedCommandCount () {
+			return socketPool.StackedCommandCount();
+		}
+
+		private void OnSocketOpened (DisquuunSocket source, string socketId) {
+			
+			if (connectionState != ConnectionState.OPENING) return;
+			var availableSocketCount = socketPool.AvailableSocketNum();
+
+			if (availableSocketCount == minConnectionCount) {
+				connectionState = ConnectionState.OPENED;
+				ConnectionOpened(connectionId);
 			}
 		}
 		
 		private void OnSocketConnectionFailed (DisquuunSocket source, string info, Exception e) {
 			UpdateState();
-			if (ConnectionFailed != null) ConnectionFailed(info, e); 
+			if (ConnectionFailed != null) ConnectionFailed("OnSocketConnectionFailed:" + info, e); 
 		}
 		
-		public void UpdateState () {
-			lock (lockObject) {
-				var availableSocketCount = 0;
-				for (var i = 0; i < socketPool.Length; i++) {
-					var socket = socketPool[i];
-					if (socket.State() == DisquuunSocket.SocketState.OPENED) availableSocketCount++;
-				}
+		private ConnectionState UpdateState () {
+			
+			var availableSocketCount = socketPool.AvailableSocketNum();
 				
-				switch (availableSocketCount) {
-					case 0: {
-						connectionState = ConnectionState.ALLCLOSED;
-						break;
-					}
-					default: {// 1 or more socket opened.
-						connectionState = ConnectionState.OPENED;
-						break;
-					}
+			switch (connectionState) {
+				case ConnectionState.OPENING: {
+					if (availableSocketCount == minConnectionCount) connectionState = ConnectionState.OPENED;
+					return connectionState;
+				}
+				case ConnectionState.OPENED: {
+					if (availableSocketCount != minConnectionCount) connectionState = ConnectionState.OPENED_RECOVERING;
+					return connectionState;
+				}
+				default: {
+					if (availableSocketCount == minConnectionCount) connectionState = ConnectionState.OPENED; 
+					break;
 				}
 			}
+			return connectionState;
 		}
 		
 		
 		public ConnectionState State () {
-			UpdateState();
-			return connectionState;
+			return UpdateState();
 		}
 		
-		public void Disconnect (bool force=false) {
+		public void Disconnect () {
 			connectionState = ConnectionState.ALLCLOSING;
-			lock (lockObject) {
-				foreach (var socket in socketPool) socket.Disconnect(force);
-			}
+			socketPool.Disconnect();
 		}
 		
-		private DisquuunSocket ChooseAvailableSocket () {
-			lock (lockObject) {
-				for (var i = 0; i < socketPool.Length; i++) {
-					var socket = socketPool[i];
-					if (socket.IsChoosable()) {
-						socket.SetBusy();
-						return socket;
-					}
-				}
-				
-				return new DisquuunSocket(endPoint, bufferSize, OnSocketConnectionFailed);
-			}
+		public int AvailableSocketNum () {
+			return socketPool.AvailableSocketNum();
 		}
-		
 		
 		
 		
@@ -188,151 +181,206 @@ namespace DisquuunCore {
 		public DisquuunInput AddJob (string queueName, byte[] data, int timeout=0, params object[] args) {
 			var bytes = DisquuunAPI.AddJob(queueName, data, timeout, args);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.ADDJOB, bytes, socket);
+			return new DisquuunInput(DisqueCommand.ADDJOB, bytes, socketPool);
 		}
 		
 		public DisquuunInput GetJob (string[] queueIds, params object[] args) {
 			var bytes = DisquuunAPI.GetJob(queueIds, args);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.GETJOB, bytes, socket);
+			return new DisquuunInput(DisqueCommand.GETJOB, bytes, socketPool);
 		}
 		
 		public DisquuunInput AckJob (string[] jobIds) {
 			var bytes = DisquuunAPI.AckJob(jobIds);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.ACKJOB, bytes, socket);
+			return new DisquuunInput(DisqueCommand.ACKJOB, bytes, socketPool);
 		}
 
 		public DisquuunInput FastAck (string[] jobIds) {
 			var bytes = DisquuunAPI.FastAck(jobIds);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.FASTACK, bytes, socket);
+			return new DisquuunInput(DisqueCommand.FASTACK, bytes, socketPool);
 		}
 
-		public DisquuunInput Working (string jobId) {
+        public DisquuunInput Working (string jobId) {
 			var bytes = DisquuunAPI.Working(jobId);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.WORKING, bytes, socket);
+			return new DisquuunInput(DisqueCommand.WORKING, bytes, socketPool);
 		}
 
 		public DisquuunInput Nack (string[] jobIds) {
 			var bytes = DisquuunAPI.Nack(jobIds);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.NACK, bytes, socket);
+			return new DisquuunInput(DisqueCommand.NACK, bytes, socketPool);
 		}
-		
-		public DisquuunInput Info () {
+
+        public DisquuunInput Info () {
 			var data = DisquuunAPI.Info();
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.INFO, data, socket);
+			return new DisquuunInput(DisqueCommand.INFO, data, socketPool);
 		}
 		
 		public DisquuunInput Hello () {
 			var bytes = DisquuunAPI.Hello();
-			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.HELLO, bytes, socket);
+
+			return new DisquuunInput(DisqueCommand.HELLO, bytes, socketPool);
 		}
 		
 		public DisquuunInput Qlen (string queueId) {
 			var bytes = DisquuunAPI.Qlen(queueId);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.QLEN, bytes, socket);
+			return new DisquuunInput(DisqueCommand.QLEN, bytes, socketPool);
 		}
 		
 		public DisquuunInput Qstat (string queueId) {
 			var bytes = DisquuunAPI.Qstat(queueId);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.QSTAT, bytes, socket);
+			return new DisquuunInput(DisqueCommand.QSTAT, bytes, socketPool);
 		}
 		
 		public DisquuunInput Qpeek (string queueId, int count) {
 			var bytes = DisquuunAPI.Qpeek(queueId, count);
-			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.QPEEK, bytes, socket);
+
+			return new DisquuunInput(DisqueCommand.QPEEK, bytes, socketPool);
 		}
 		
 		public DisquuunInput Enqueue (params string[] jobIds) {
 			var bytes = DisquuunAPI.Enqueue(jobIds);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.ENQUEUE, bytes, socket);
+			return new DisquuunInput(DisqueCommand.ENQUEUE, bytes, socketPool);
 		}
 		
 		public DisquuunInput Dequeue (params string[] jobIds) {
 			var bytes = DisquuunAPI.Dequeue(jobIds);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.DEQUEUE, bytes, socket);
+			return new DisquuunInput(DisqueCommand.DEQUEUE, bytes, socketPool);
 		}
 		
 		public DisquuunInput DelJob (params string[] jobIds) {
 			var bytes = DisquuunAPI.DelJob(jobIds);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.DELJOB, bytes, socket);
+			return new DisquuunInput(DisqueCommand.DELJOB, bytes, socketPool);
 		}
 		
 		public DisquuunInput Show (string jobId) {
 			var bytes = DisquuunAPI.Show(jobId);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.SHOW, bytes, socket);
+			return new DisquuunInput(DisqueCommand.SHOW, bytes, socketPool);
 		}
 		
 		public DisquuunInput Qscan (params object[] args) {
 			var bytes = DisquuunAPI.Qscan(args);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.QSCAN, bytes, socket);
+			return new DisquuunInput(DisqueCommand.QSCAN, bytes, socketPool);
 		}
 		
 		public DisquuunInput Jscan (int cursor=0, params object[] args) {
 			var bytes = DisquuunAPI.Jscan(cursor, args);
 			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.JSCAN, bytes, socket);
+			return new DisquuunInput(DisqueCommand.JSCAN, bytes, socketPool);
 		}
 		
 		public DisquuunInput Pause (string queueId, string option1, params string[] options) {
 			var bytes = DisquuunAPI.Pause(queueId, option1, options);
-			
-			var socket = ChooseAvailableSocket();
-			
-			return new DisquuunInput(DisqueCommand.PAUSE, bytes, socket);
+
+			return new DisquuunInput(DisqueCommand.PAUSE, bytes, socketPool);
+		}
+
+		/*
+			pipelines
+		*/
+		private List<DisquuunInput> pipelineStack = new List<DisquuunInput>();
+		public List<DisquuunInput> Pipeline(params DisquuunInput[] disquuunInput) {
+            if (0 < disquuunInput.Length) pipelineStack.AddRange(disquuunInput);
+			return pipelineStack;
+        }
+
+		/*
+			utils
+		*/
+		public static void Log (string message, bool write=false) {
+			// TestLogger.Log(message, write);
+		}
+    }
+	
+
+	public class DisquuunSocketPool {
+		private DisquuunSocket[] sockets;
+
+		private StackSocket stackSocket;
+
+		private object lockObject = new object();
+
+		public DisquuunSocketPool (int connectionCount, Action<DisquuunSocket, string> OnSocketOpened, Action<DisquuunSocket, string, Exception> OnSocketConnectionFailed) {
+			this.stackSocket = new StackSocket();
+			this.sockets = new DisquuunSocket[connectionCount];
+			for (var i = 0; i < sockets.Length; i++) this.sockets[i] = new DisquuunSocket(OnSocketOpened, this.OnReloaded, OnSocketConnectionFailed);
+		}
+
+		public void Connect (IPEndPoint endPoint, long bufferSize) {
+			for (var i = 0; i < sockets.Length; i++) this.sockets[i].Connect(endPoint, bufferSize); 
+		}
+
+		public void Disconnect () {
+			lock (lockObject) {
+				foreach (var socket in sockets) socket.Disconnect();
+			}
 		}
 		
-		
-		
-		public static void Log (string message) {
-			// TestLogger.Log(message);
+		public StackSocket ChooseAvailableSocket () {
+			lock (lockObject) {
+				for (var i = 0; i < sockets.Length; i++) {
+					var socket = sockets[i];
+					if (socket.IsChoosable()) {
+						socket.SetBusy();
+						return socket;
+					}
+				}
+				
+				return stackSocket;
+			}
 		}
-	}
+
+		public void OnReloaded (DisquuunSocket reloadedSocket) {
+			lock (lockObject) {
+				if (stackSocket.IsQueued()) {
+					if (reloadedSocket.IsChoosable()) {
+						reloadedSocket.SetBusy();
+
+						var commandAndData = stackSocket.Dequeue(); 
+						switch (commandAndData.executeType) {
+							case DisquuunExecuteType.ASYNC: {
+								reloadedSocket.Async(commandAndData.commands, commandAndData.data, commandAndData.Callback);
+								return;
+							}
+							case DisquuunExecuteType.LOOP: {
+								reloadedSocket.Loop(commandAndData.commands, commandAndData.data, commandAndData.Callback);
+								return;
+							}
+							case DisquuunExecuteType.PIPELINE: {
+								reloadedSocket.Execute(commandAndData.commands, commandAndData.data, commandAndData.Callback);
+								return;
+							}
+						}
+					}
+				}
+			}
+		}
+
+        public int AvailableSocketNum() {
+            lock (lockObject) {
+				var availableSocketCount = 0;
+				for (var i = 0; i < sockets.Length; i++) {
+					var socket = sockets[i];
+					if (socket == null) continue;
+					if (socket.IsChoosable()) availableSocketCount++;
+				}
+				return availableSocketCount;
+			}
+        }
+
+        public int StackedCommandCount() {
+            lock (lockObject) return stackSocket.QueueCount();
+        }
+    }
 }

@@ -24,12 +24,9 @@ public class DisquuunTests {
 	}
 }
 
-
-
 public partial class Tests {
 	public void RunTests () {
 		var tests = new List<Action<Disquuun>>();
-		
 		for (var i = 0; i < 1; i++) {
 		// basement.
 		tests.Add(_0_0_InitWith2Connection);
@@ -44,6 +41,8 @@ public partial class Tests {
 		tests.Add(_0_5_LoopInfo_Once);
 		tests.Add(_0_6_LoopInfo_Twice);
 		tests.Add(_0_7_LoopInfo_100);
+		tests.Add(_0_8_Pipeline_Single);
+		tests.Add(_0_9_Pipeline);
 		
 		// sync apis. DEPRECATED.
 		tests.Add(_1_0_AddJob_Sync);
@@ -107,51 +106,64 @@ public partial class Tests {
 		
 		// error handling.
 		tests.Add(_5_0_ConnectionFailed);
-		// tests.Add(_5_1_ConnectionFailedMultiple);// 連続してるとダメっていう。状態持ってるなどこかに。
+		tests.Add(_5_1_ConnectionFailedMultiple);
 		
 		// adding async request over busy-socket num.
 		tests.Add(_6_0_ExceededSocketNo3In2);
 		tests.Add(_6_1_ExceededSocketNo100In2);
+		tests.Add(_6_2_ExceededSocketShouldStacked);
 		
 		// benchmarks.
 		tests.Add(_7_0_AddJob1000);
 		tests.Add(_7_0_0_AddJob1000by100Connectoion);
+		tests.Add(_7_0_1_AddJob1000byPipeline);
 		tests.Add(_7_1_GetJob1000);
 		tests.Add(_7_1_0_GetJob1000by100Connection);
+		tests.Add(_7_1_1_GetJob1000byPipeline);
+		tests.Add(_7_2_GetJob1000byLoop);
 
 		// data size bounding case.
 		tests.Add(_8_0_LargeSizeSendThenSmallSizeSendMakeEmitOnSendAfterOnReceived);
 		tests.Add(_8_1_LargeSizeSendThenSmallSizeSendLoopMakeEmitOnSendAfterOnReceived);
 
+		// pipelime
+		tests.Add(_0_9_0_PipelineCommands);
+		tests.Add(_0_9_1_MultiplePipelines);
+		tests.Add(_0_9_2_MultipleCommandPipelines);
+		tests.Add(_0_9_3_SomeCommandPipelines);
+		tests.Add(_0_9_4_MassiveCommandPipelines);
 		}
-
 
 		try {
 			TestLogger.Log("tests started.", true);
 			
 			var disquuunForResultInfo = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 10240, 1);
-			WaitUntil(() => (disquuunForResultInfo.State() == Disquuun.ConnectionState.OPENED), 5);
-			
+			WaitUntil("testRunner:", () => (disquuunForResultInfo.State() == Disquuun.ConnectionState.OPENED), 5);
+			var i = 0;
 			foreach (var test in tests) {
+				var methodName = i.ToString() + test.GetType();
+				i++;
+
 				try {
 					var disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 2020008, 2);// this buffer size is just for 100byte job x 10000 then receive 1 GetJob(count 1000).
 					test(disquuun);
 					if (disquuun != null) {
-						disquuun.Disconnect(true);
+						disquuun.Disconnect();
 						disquuun = null;
 					}
-
+					
 					var info = disquuunForResultInfo.Info().DEPRICATED_Sync();
 					var result = DisquuunDeserializer.Info(info);
 					var restJobCount = result.jobs.registered_jobs;
-					if (restJobCount != 0) TestLogger.Log("test:" + test.Method + " rest job:" + restJobCount, true);
-					else TestLogger.Log("test:" + test.Method + " passed. no job exists.", true);
+					
+					if (restJobCount != 0) TestLogger.Log("test:" + methodName + " rest job:" + restJobCount, true);
+					else TestLogger.Log("test:" + methodName + " passed. no job exists.", true);
 				} catch (Exception e) {
-					TestLogger.Log("test:" + test.Method + " FAILED by exception:" + e);
+					TestLogger.Log("test:" + methodName + " FAILED by exception:" + e, true);
 				}
 			}
 
-			disquuunForResultInfo.Disconnect(true);
+			disquuunForResultInfo.Disconnect();
 			TestLogger.Log("tests end.", true);
 		} catch (Exception e) {
 			TestLogger.Log("tests failed:" + e, true);
@@ -159,11 +171,9 @@ public partial class Tests {
 	}
 	
 	
-	public void WaitUntil (Func<bool> WaitFor, int timeoutSec) {
-		System.Diagnostics.StackTrace stack  = new System.Diagnostics.StackTrace(false);
-		var methodName = stack.GetFrame(1).GetMethod().Name;
+	public bool WaitUntil (string methodName, Func<bool> WaitFor, int timeoutSec) {
 		var resetEvent = new ManualResetEvent(false);
-		
+		var succeeded = true;
 		var waitingThread = new Thread(
 			() => {
 				resetEvent.Reset();
@@ -175,14 +185,15 @@ public partial class Tests {
 						var distanceSeconds = (current - startTime).Seconds;
 						
 						if (timeoutSec < distanceSeconds) {
-							TestLogger.Log("timeout:" + methodName, true);
+							TestLogger.Log("timeout:" + methodName);
+							succeeded = false;
 							break;
 						}
 						
 						System.Threading.Thread.Sleep(10);
 					}
 				} catch (Exception e) {
-					TestLogger.Log("methodName:" + methodName + " error:" + e, true);
+					TestLogger.Log("methodName:" + methodName + " error:" + e.Message, true);
 				}
 				
 				resetEvent.Set();
@@ -192,46 +203,49 @@ public partial class Tests {
 		waitingThread.Start();
 		
 		resetEvent.WaitOne();
+		return succeeded;
 	}
 	
-	public void Assert (bool condition, string message) {
-		System.Diagnostics.StackTrace stack  = new System.Diagnostics.StackTrace(false);
-		var methodName = stack.GetFrame(1).GetMethod().Name;
+	public void Assert (string methodName, bool condition, string message) {
 		if (!condition) TestLogger.Log("test:" + methodName + " FAILED:" + message); 
 	}
 	
-	public void Assert (object expected, object actual, string message) {
-		System.Diagnostics.StackTrace stack  = new System.Diagnostics.StackTrace(false);
-		var methodName = stack.GetFrame(1).GetMethod().Name;
-		if (expected.ToString() != actual.ToString()) TestLogger.Log("test:" + methodName + " FAILED:" + message + " expected:" + expected + " actual:" + actual + " stack:" + stack); 
+	
+	public void Assert (string methodName, object expected, object actual, string message) {
+		if (expected.ToString() != actual.ToString()) TestLogger.Log("test:" + methodName + " FAILED:" + message + " expected:" + expected + " actual:" + actual); 
 	}
 }
 
 
+
 public static class TestLogger {
+	private static object lockObject = new object();
+
 	public static string logPath;
 	public static StringBuilder logs = new StringBuilder();
 	public static void Log (string message, bool export=false) {
-		if (!export) {
-			logs.AppendLine(message);
-			return;
-		}
-		
-		logPath = "test.log";
-		
-		// file write
-		using (var fs = new FileStream(
-			logPath,
-			FileMode.Append,
-			FileAccess.Write,
-			FileShare.ReadWrite)
-		) {
-			using (var sr = new StreamWriter(fs)) {
-				if (0 < logs.Length) {
-					sr.WriteLine(logs.ToString());
-					logs = new StringBuilder();
+		lock (lockObject) {
+			if (!export) {
+				logs.AppendLine(message);
+				return;
+			}
+
+			logPath = "test.log";
+			
+			// file write
+			using (var fs = new FileStream(
+				logPath,
+				FileMode.Append,
+				FileAccess.Write,
+				FileShare.ReadWrite)
+			) {
+				using (var sr = new StreamWriter(fs)) {
+					if (0 < logs.Length) {
+						sr.WriteLine(logs.ToString());
+						logs = new StringBuilder();
+					}
+					sr.WriteLine("log:" + message);
 				}
-				sr.WriteLine("log:" + message);
 			}
 		}
 	}

@@ -118,11 +118,7 @@ namespace DisquuunCore {
 		}
 		
 		private void StartConnectAsync (Socket clientSocket, SocketAsyncEventArgs connectArgs) {
-			try {
-				if (!clientSocket.ConnectAsync(socketToken.connectArgs)) OnConnect(clientSocket, connectArgs);
-			} catch (Exception e) {
-				SocketClosed(this, "failed to try connect.", e);
-			}
+			if (!clientSocket.ConnectAsync(socketToken.connectArgs)) OnConnect(clientSocket, connectArgs);
 		}
 		
 		/*
@@ -136,44 +132,44 @@ namespace DisquuunCore {
 		public override DisquuunResult[] DEPRECATED_Sync (DisqueCommand command, byte[] data) {
 			try {
 
-			socketToken.socket.Send(data);
-			
-			var currentLength = 0;
-			var scanResult = new DisquuunAPI.ScanResult(false);
-			
-			while (true) {
-				// waiting for head of transferring data or rest of data.
-				socketToken.socket.Receive(socketToken.receiveBuffer, currentLength, 1, SocketFlags.None);
-				currentLength = currentLength + 1;
+				socketToken.socket.Send(data);
 				
-				var available = socketToken.socket.Available;
-				var readableLength = currentLength + available;
-				{
-					if (socketToken.receiveBuffer.Length < readableLength) {
-						// Disquuun.Log("サイズオーバーしてる " + socketToken.receiveBuffer.Length + " vs:" + readableLength);
-						Array.Resize(ref socketToken.receiveBuffer, readableLength);
+				var currentLength = 0;
+				var scanResult = new DisquuunAPI.ScanResult(false);
+				
+				while (true) {
+					// waiting for head of transferring data or rest of data.
+					socketToken.socket.Receive(socketToken.receiveBuffer, currentLength, 1, SocketFlags.None);
+					currentLength = currentLength + 1;
+					
+					var available = socketToken.socket.Available;
+					var readableLength = currentLength + available;
+					{
+						if (socketToken.receiveBuffer.Length < readableLength) {
+							// Disquuun.Log("サイズオーバーしてる " + socketToken.receiveBuffer.Length + " vs:" + readableLength);
+							Array.Resize(ref socketToken.receiveBuffer, readableLength);
+						}
+					}
+					
+					// read rest.
+					socketToken.socket.Receive(socketToken.receiveBuffer, currentLength, available, SocketFlags.None);
+					currentLength = currentLength + available;
+					
+					scanResult = DisquuunAPI.ScanBuffer(command, socketToken.receiveBuffer, 0, currentLength, socketId);
+					if (scanResult.isDone) break;
+					
+					// continue reading data from socket.
+					// if need, prepare for next 1 byte.
+					if (socketToken.receiveBuffer.Length == readableLength) {
+						Array.Resize(ref socketToken.receiveBuffer, socketToken.receiveBuffer.Length + 1);
 					}
 				}
 				
-				// read rest.
-				socketToken.socket.Receive(socketToken.receiveBuffer, currentLength, available, SocketFlags.None);
-				currentLength = currentLength + available;
-				
-				scanResult = DisquuunAPI.ScanBuffer(command, socketToken.receiveBuffer, 0, currentLength, socketId);
-				if (scanResult.isDone) break;
-				
-				// continue reading data from socket.
-				// if need, prepare for next 1 byte.
-				if (socketToken.receiveBuffer.Length == readableLength) {
-					Array.Resize(ref socketToken.receiveBuffer, socketToken.receiveBuffer.Length + 1);
-				}
-			}
+				socketToken.socketState = SocketState.OPENED;
+				return scanResult.data;
 			
-			socketToken.socketState = SocketState.OPENED;
-			return scanResult.data;
-			
-			}catch (Exception e) {
-				Disquuun.Log("e:" + e, true);
+			} catch (Exception e) {
+				Disquuun.Log("DEPRECATED_Sync error:" + e, true);
 				throw e;
 			}
 		}
@@ -219,7 +215,6 @@ namespace DisquuunCore {
 			default pooled socket + disposable socket shared 
 		*/
 		private void StartReceiveAndSendDataAsync (Queue<DisqueCommand> commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback) {
-			try {
 			// ready for receive.
 			socketToken.readableDataLength = 0;
 
@@ -246,11 +241,7 @@ namespace DisquuunCore {
 				socketToken.sendArgs.SetBuffer(data, 0, data.Length);
 			}
 
-			if (!socketToken.socket.SendAsync(socketToken.sendArgs)) OnSend(socketToken.socket, socketToken.sendArgs);
-			
-			} catch (Exception e1) {
-				Disquuun.Log("StartReceiveAndSendDataAsync error:" + e1.Message, true);
-			} 
+			if (!socketToken.socket.SendAsync(socketToken.sendArgs)) OnSend(socketToken.socket, socketToken.sendArgs); 
 		}
 		
 		
@@ -296,7 +287,6 @@ namespace DisquuunCore {
 		}
 		
 		private void OnSend (object unused, SocketAsyncEventArgs args) {
-			try {
 			switch (args.SocketError) {
 				case SocketError.Success: {
 					var token = args.UserToken as SocketToken;
@@ -334,9 +324,6 @@ namespace DisquuunCore {
 					// }
 					return;
 				}
-			}
-			} catch (Exception e) {
-				Disquuun.Log("OnSend e:" + e, true);
 			}
 		}
 
@@ -468,6 +455,7 @@ namespace DisquuunCore {
 							try {
 								token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
 							} catch {
+								// renew. potential error is exists and should avoid this error.
 								var sendArgs = new SocketAsyncEventArgs();
 								sendArgs.RemoteEndPoint = token.receiveArgs.RemoteEndPoint;
 								sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);

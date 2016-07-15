@@ -166,7 +166,8 @@ public partial class Tests {
 		for (var i = 0; i < jobData.Length; i++) jobData[i] = 1;
 
 		for (var i = 0; i < jobCount; i++) disquuun.Pipeline(disquuun.AddJob(queueId, jobData));
-		disquuun.Pipeline(disquuun.Info()).Execute( 
+		disquuun.Pipeline(disquuun.Info());
+		disquuun.Pipeline().Execute( 
 			(command, data) => {
 				switch (command) {
 					case DisqueCommand.INFO: {

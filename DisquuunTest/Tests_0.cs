@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using DisquuunCore;
 using DisquuunCore.Deserialize;
 
@@ -99,18 +99,52 @@ public partial class Tests {
 		
 		disquuun.Disconnect();
 	}
+
+	public void _0_0_4_ReadmeSamplePipeline (Disquuun disquuun) {
+		WaitUntil("_0_0_4_ReadmeSamplePipeline", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		
+		var fastacked = false;
+		
+		disquuun.Pipeline(
+			disquuun.AddJob("my queue name", new byte[100]),
+			disquuun.GetJob(new string[]{"my queue name"})
+		).Execute(
+			(command, data) => {
+				if (command != DisqueCommand.GETJOB) return;
+				var jobs = DisquuunDeserializer.GetJob(data);
+				
+				var jobIds = jobs.Select(jobData => jobData.jobId).ToArray();
+				var jobDatas = jobs.Select(jobData => jobData.jobData).ToList();
+				
+				/*
+					fast ack all.
+				*/
+				disquuun.FastAck(jobIds).Async(
+					(command2, data2) => {
+						fastacked = true;
+					}
+				);
+			}
+		);
+
+		WaitUntil("_0_0_4_ReadmeSamplePipeline", () => fastacked, 5);
+	}
 	
-	public void _0_0_4_ConnectedShouldCallOnce (Disquuun disquuun) {
+	private object _0_1_ConnectedShouldCallOnceObject = new object();
+
+	public void _0_1_ConnectedShouldCallOnce (Disquuun disquuun) {
 		int connectedCount = 0;
 		
 		disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 100,
 			disquuunId => {
-				Assert("_0_0_4_ConnectedShouldCallOnce", 0, connectedCount, "not match.");
-				connectedCount++;
+				lock (_0_1_ConnectedShouldCallOnceObject) {
+					Assert("_0_1_ConnectedShouldCallOnce", 0, connectedCount, "not match.");
+					connectedCount++;
+				}
 			}
 		);
 		
-		WaitUntil("_0_0_4_ConnectedShouldCallOnce", () => (connectedCount == 1), 5);
+		WaitUntil("_0_1_ConnectedShouldCallOnce", () => (connectedCount == 1), 5);
 		
 		disquuun.Disconnect();
 	}

@@ -1,9 +1,9 @@
 #Disquuun
 
 C# Disque client.  
-ver 0.7.2 (essential Disque commands are supported.)
+ver 0.7.2 (only essential Disque commands and options are supported.)
 
-DotNet Core 1.0 adopetd.
+DotNet Core 1.0 adopetd. Running on DotNet 3.5 ~ Core 1.0
 
 ##Table of Contents
   * [Motivation](#motivation)
@@ -11,13 +11,25 @@ DotNet Core 1.0 adopetd.
   * [Loop usage](#loop-usage)
   * [Pipeline usage](#pipeline-usage)
   * [License](#license)
+  * [Contribution](#contribution)
   
 
 ##Motivation
 Lightweight, async, zero copy, independent. not depends on any Redis code. 
 
+**Lightweight**  
 No threads contained,  
 but the Loop mechanism is included for repeating the Disque commands.
+
+**async**  
+Every operation runs async basically.
+
+**zero copy**  
+Zero memory allocation after receiving data from Disque. you can get data as ArraySegment then you can copy it by using **DisquuunDeserializer**.
+
+**independent**  
+yes. it is for making allocation smaller than before.
+
 
 "n" means "this is written in C#".
 
@@ -74,7 +86,7 @@ disquuun = new Disquuun("127.0.0.1", 7711, 1024, 1,
 WaitUntil(() => (fastAckedJobCount == 1), 5);
 ```
 Sync & Async api is supported. but Sync api is already deplicated.  
-(only used for tests.)
+(it is used for tests only.)
 
 ##Loop usage
 Disquuun can repeat command easily.  
@@ -110,12 +122,14 @@ Disquuun enables Pipelining of Disque commands.
 Add -> Getting job with Pipeline sample is below.
 
 ```C#
+var fastacked = false;
+		
 disquuun.Pipeline(
 	disquuun.AddJob("my queue name", new byte[100]),
 	disquuun.GetJob(new string[]{"my queue name"})
 ).Execute(
 	(command, data) => {
-		if (command != DisqueCommand.GetJob) return;
+		if (command != DisqueCommand.GETJOB) return;
 		var jobs = DisquuunDeserializer.GetJob(data);
 		
 		var jobIds = jobs.Select(jobData => jobData.jobId).ToArray();
@@ -124,18 +138,33 @@ disquuun.Pipeline(
 		/*
 			fast ack all.
 		*/
-		disquuun.FastAck(jobIds).Async((command2, data2) => {});
-		
-		InputDatasToContext(jobDatas);
+		disquuun.FastAck(jobIds).Async(
+			(command2, data2) => {
+				fastacked = true;
+			}
+		);
 	}
 );
+
+WaitUntil("_0_0_4_ReadmeSamplePipeline", () => fastacked, 5);
 ```
 
 The disquuun.Pipeline() method is for pipelining Disque commands.
 use Execute(Callback) to execute pipelined commands.
 
+You can also use Execute(Callback) with empty Pipeline() method like below.
 
+```C#
+for (var i = 0; i < 1000; i++) disquuun.Pipeline(disquuun.AddJob("my queue name", new byte[100]));
 
+disquuun.Pipeline().Execute(
+	...
+);
+```
 
 ##License
 MIT.
+
+
+##Contribution
+very welcome!! especially implement the read-block of received Disque commands and options.

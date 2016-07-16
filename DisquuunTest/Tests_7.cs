@@ -191,6 +191,68 @@ public partial class Tests {
 		WaitUntil("_7_0_1_AddJob1000byPipeline 2", () => (gotCount == count), 10);
 		disquuun.Disconnect();
 	}
+
+	private object _7_0_2_AddJob1000byPipelinesObject = new object();
+
+	public void _7_0_2_AddJob1000byPipelines (Disquuun disquuun) {
+		WaitUntil("_7_0_2_AddJob1000byPipelines", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		
+		var count = 1000 * loadLevel;
+		
+		var connectedCount = 0;
+		disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 100,
+			disquuunId => {
+				connectedCount++;
+			},
+			(info, e) => {
+				TestLogger.Log("error, info:" + info + " e:" + e.Message);
+			}
+		);
+
+		
+		
+		WaitUntil("_7_0_2_AddJob1000byPipelines 0", () => (connectedCount == 1), 5);
+		
+		var addedCount = 0;
+		
+		var queueId = Guid.NewGuid().ToString();
+		
+		var w = new Stopwatch();
+		w.Start();
+		for (var i = 0; i < count; i++) {
+			if (i == count/2) disquuun.RevolvePipeline(); 
+			disquuun.Pipeline(disquuun.AddJob(queueId, new byte[10]));
+		}
+		disquuun.Pipeline().Execute(
+			(command, data) => {
+				lock (_7_0_2_AddJob1000byPipelinesObject) addedCount++;
+			}
+		);
+
+		w.Stop();
+		TestLogger.Log("_7_0_2_AddJob1000byPipelines w:" + w.ElapsedMilliseconds + " tick:" + w.ElapsedTicks);
+		
+		WaitUntil("_7_0_2_AddJob1000byPipelines 1", () => (addedCount == count), 100);
+		
+		var gotCount = 0;
+		disquuun.GetJob(new string[]{queueId}, "count", count).Async(
+			(command, data) => {
+				var jobDatas = DisquuunDeserializer.GetJob(data);
+				var jobIds = jobDatas.Select(j => j.jobId).ToArray();
+				disquuun.FastAck(jobIds).Async(
+					(c2, d2) => {
+						var fastackCount = DisquuunDeserializer.FastAck(d2);
+						lock (_7_0_2_AddJob1000byPipelinesObject) {
+							gotCount += fastackCount;
+						}
+					}
+				);
+			}
+		);
+		
+		WaitUntil("_7_0_2_AddJob1000byPipelines 2", () => (gotCount == count), 10);
+		disquuun.Disconnect();
+	}
 	
 	private object _7_1_GetJob1000Lock = new object();
 
@@ -389,6 +451,73 @@ public partial class Tests {
 		disquuun.Disconnect();
 	}
 
+	private object _7_1_2_GetJob1000byPipelinesObject = new object();
+
+	public void _7_1_2_GetJob1000byPipelines (Disquuun disquuun) {
+		WaitUntil("_7_1_2_GetJob1000byPipelines", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		
+		var addingJobCount = 1000 * loadLevel;
+		
+		var connected = false;
+		disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 100,
+			disquuunId => {
+				connected = true;
+			},
+			(info, e) => {
+				TestLogger.Log("error, info:" + info + " e:" + e.Message);
+			}
+		);
+		
+		WaitUntil("_7_1_2_GetJob1000byPipelines", () => connected, 5);
+		
+		var addedCount = 0;
+		
+		var queueId = Guid.NewGuid().ToString();
+		
+		for (var i = 0; i < addingJobCount; i++) {
+			disquuun.Pipeline(disquuun.AddJob(queueId, new byte[10]));
+		}
+
+		disquuun.Pipeline().Execute(
+			(command, data) => {
+				lock (_7_1_2_GetJob1000byPipelinesObject) addedCount++;
+			}
+		);
+
+		
+		WaitUntil("_7_1_2_GetJob1000byPipelines", () => (addedCount == addingJobCount), 10);
+		
+		var gotJobDataIds = new List<string>();
+		
+		
+		var w = new Stopwatch();
+		w.Start();
+		for (var i = 0; i < addingJobCount; i++) {
+			if (i == addingJobCount/2) disquuun.RevolvePipeline();
+			disquuun.Pipeline(disquuun.GetJob(new string[]{queueId}));
+		}
+		disquuun.Pipeline().Execute(
+			(command, data) => {
+				lock (_7_1_2_GetJob1000byPipelinesObject) {
+					var jobDatas = DisquuunDeserializer.GetJob(data);
+					var jobIds = jobDatas.Select(j => j.jobId).ToList();
+					gotJobDataIds.AddRange(jobIds);
+				}
+			}
+		);
+		
+		WaitUntil("_7_1_2_GetJob1000byPipelines", () => (gotJobDataIds.Count == addingJobCount), 10);
+		
+
+		w.Stop();
+		TestLogger.Log("_7_1_2_GetJob1000byPipelines w:" + w.ElapsedMilliseconds + " tick:" + w.ElapsedTicks);
+		
+		var result = DisquuunDeserializer.FastAck(disquuun.FastAck(gotJobDataIds.ToArray()).DEPRICATED_Sync());
+		
+		Assert("_7_1_2_GetJob1000byPipelines", addingJobCount, result, "result not match.");
+		disquuun.Disconnect();
+	}
+
 	private object _7_2_GetJob1000byLoopLockObject = new object(); 
 	public void _7_2_GetJob1000byLoop (Disquuun disquuun) {
 		WaitUntil("_7_2_GetJob1000byLoop 0", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
@@ -444,7 +573,9 @@ public partial class Tests {
 		WaitUntil("_7_2_GetJob1000byLoop 4", () => (addingJobCount == fastackedCount), 10);
 	}
 
-	
+	/*
+		unexecutable test. because of 
+	*/
 	private object _7_2_0_GetJob1000byPipelineObject = new object(); 
 	public void _7_2_0_GetJob1000byPipeline (Disquuun disquuun) {
 		WaitUntil("_7_2_0_GetJob1000byPipeline 0", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
@@ -501,5 +632,4 @@ public partial class Tests {
 		
 		WaitUntil("_7_2_0_GetJob1000byPipeline 4", () => (addingJobCount == fastackedCount), 10);
 	}
-
 }

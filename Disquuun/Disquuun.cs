@@ -289,19 +289,32 @@ namespace DisquuunCore {
 		/*
 			pipelines
 		*/
-		private List<DisquuunInput> pipelineStack = new List<DisquuunInput>();
-		public List<DisquuunInput> Pipeline(params DisquuunInput[] disquuunInput) {
-            if (0 < disquuunInput.Length) pipelineStack.AddRange(disquuunInput);
+		private List<List<DisquuunInput>> pipelineStack = new List<List<DisquuunInput>>();
+		private int currentPipelineIndex = -1;
+
+		public List<List<DisquuunInput>> Pipeline(params DisquuunInput[] disquuunInput) {
+			if (0 < disquuunInput.Length) {
+				if (pipelineStack.Count == 0) currentPipelineIndex = 0;
+
+				if (pipelineStack.Count < currentPipelineIndex + 1) pipelineStack.Add(new List<DisquuunInput>());
+				pipelineStack[currentPipelineIndex].AddRange(disquuunInput);
+			}
 			return pipelineStack;
         }
 
-		/*
-			utils
-		*/
+		public void RevolvePipeline () {
+			if (currentPipelineIndex == -1) return; 
+			if (pipelineStack.Count == 0) return;
+			
+			if (0 < pipelineStack[currentPipelineIndex].Count) currentPipelineIndex++;
+		}
+    }
+
+	public static class DisquuunLogger {
 		public static void Log (string message, bool write=false) {
 			// TestLogger.Log(message, write);
 		}
-    }
+	}
 	
 
 	public class DisquuunSocketPool {

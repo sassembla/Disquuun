@@ -118,22 +118,25 @@ public partial class Tests {
 		tests.Add(_7_0_AddJob1000);
 		tests.Add(_7_0_0_AddJob1000by100Connectoion);
 		tests.Add(_7_0_1_AddJob1000byPipeline);
+		tests.Add(_7_0_2_AddJob1000byPipelines);
 		tests.Add(_7_1_GetJob1000);
 		tests.Add(_7_1_0_GetJob1000by100Connection);
 		tests.Add(_7_1_1_GetJob1000byPipeline);
+		tests.Add(_7_1_2_GetJob1000byPipelines);
 		tests.Add(_7_2_GetJob1000byLoop);
-		// tests.Add(_7_2_0_GetJob1000byPipeline);
+		// tests.Add(_7_2_0_GetJob1000byPipeline);// unexecutable.
 
 		// data size bounding case.
 		tests.Add(_8_0_LargeSizeSendThenSmallSizeSendMakeEmitOnSendAfterOnReceived);
 		tests.Add(_8_1_LargeSizeSendThenSmallSizeSendLoopMakeEmitOnSendAfterOnReceived);
 
-		// pipelime
+		// pipeline
 		tests.Add(_0_9_0_PipelineCommands);
-		tests.Add(_0_9_1_MultiplePipelines);
-		tests.Add(_0_9_2_MultipleCommandPipelines);
-		tests.Add(_0_9_3_SomeCommandPipelines);
-		tests.Add(_0_9_4_MassiveCommandPipelines);
+		tests.Add(_0_9_1_MultiplePipeline);
+		tests.Add(_0_9_2_MultipleCommandPipeline);
+		tests.Add(_0_9_3_SomeCommandPipeline);
+		tests.Add(_0_9_4_MassiveCommandPipeline);
+		tests.Add(_0_9_5_Pipelines);
 		}
 
 		try {
@@ -147,7 +150,7 @@ public partial class Tests {
 				i++;
 
 				try {
-					var disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 2020008, 2);// this buffer size is just for 100byte job x 10000 then receive 1 GetJob(count 1000).
+					var disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 2020008, 20);// this buffer size is just for 100byte job x 10000 then receive 1 GetJob(count 1000).
 					test(disquuun);
 					if (disquuun != null) {
 						disquuun.Disconnect();

@@ -38,8 +38,8 @@ namespace DisquuunCore {
 		public const byte ByteBulk		= 36;
 		public const byte ByteMultiBulk	= 42;
 		public const byte ByteInt		= 58;
-		public static byte ByteCR = Convert.ToByte('\r');
-		public static byte ByteLF = Convert.ToByte('\n');
+		public static readonly byte ByteCR = Convert.ToByte('\r');
+		public static readonly byte ByteLF = Convert.ToByte('\n');
 		
 		private static byte[] BytesMultiBulk = new byte[]{ByteMultiBulk};
 		private static byte[] BytesCRLF = new byte[]{ByteCR, ByteLF};
@@ -602,7 +602,7 @@ namespace DisquuunCore {
 								var lineEndCursor = ReadLine(sourceBuffer, cursor, length);
 								if (lineEndCursor == -1) return new ScanResult(false);
 								cursor = cursor + 1;// add header byte size = 1.
-								
+
 								// var bulkCountStr = Encoding.UTF8.GetString(sourceBuffer, cursor, lineEndCursor - cursor);
 								// Disquuun.Log("bulkCountStr:" + bulkCountStr);
 								

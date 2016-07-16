@@ -169,7 +169,7 @@ namespace DisquuunCore {
 				return scanResult.data;
 			
 			} catch (Exception e) {
-				Disquuun.Log("DEPRECATED_Sync error:" + e, true);
+				DisquuunLogger.Log("DEPRECATED_Sync error:" + e, true);
 				throw e;
 			}
 		}
@@ -222,6 +222,7 @@ namespace DisquuunCore {
 			if (!socketToken.socket.ReceiveAsync(socketToken.receiveArgs)) OnReceived(socketToken.socket, socketToken.receiveArgs);
 			
 			// if multiple commands exist, set as pipeline.
+			socketToken.isPipeline = false;
 			if (1 < commands.Count) socketToken.isPipeline = true; 
 
 			socketToken.currentCommands = commands;
@@ -270,21 +271,6 @@ namespace DisquuunCore {
 				}
 			}
 		}
-
-		private void OnClosed (object unused, SocketAsyncEventArgs args) {
-		
-			var token = (SocketToken)args.UserToken;
-			switch (token.socketState) {
-				case SocketState.CLOSED: {
-					// do nothing.
-					break;
-				}
-				default: {
-					token.socketState = SocketState.CLOSED;
-					break;
-				}
-			}
-		}
 		
 		private void OnSend (object unused, SocketAsyncEventArgs args) {
 			switch (args.SocketError) {
@@ -317,7 +303,7 @@ namespace DisquuunCore {
 					return;
 				}
 				default: {
-					Disquuun.Log("onsend error, " + args.SocketError, true);
+					DisquuunLogger.Log("onsend error, " + args.SocketError, true);
 					// if (Error != null) {
 					// 	var error = new Exception("send error:" + socketError.ToString());
 					// 	Error(error);
@@ -341,11 +327,11 @@ namespace DisquuunCore {
 					default: {
 						switch (args.SocketError) {
 							case SocketError.ConnectionReset: {
-								Disquuun.Log("ConnectionResetが出てる. " + " token.socketState:" + token.socketState, true);
+								DisquuunLogger.Log("ConnectionResetが出てる. " + " token.socketState:" + token.socketState, true);
 								break;
 							}
 							default: {
-								Disquuun.Log("onReceive default token.socketState:" + token.socketState + " error:" + args.SocketError, true);
+								DisquuunLogger.Log("onReceive default token.socketState:" + token.socketState + " error:" + args.SocketError, true);
 								break;
 							}
 						}
@@ -382,7 +368,7 @@ namespace DisquuunCore {
 
 				if (result.isDone) {	
 					token.AsyncCallback(currentCommand, result.data);
-
+					
 					// deque as read done.
 					token.currentCommands.Dequeue();
 					
@@ -554,7 +540,7 @@ namespace DisquuunCore {
 				socketToken.socket.Dispose();
 				socketToken.socketState = SocketState.CLOSED;
 			} catch (Exception e) {
-				Disquuun.Log("Disconnect e:" + e.Message, true);
+				DisquuunLogger.Log("Disconnect e:" + e.Message, true);
 			}
 			return;
 		}
@@ -664,25 +650,33 @@ namespace DisquuunCore {
 			socket.Loop(commands, input.data, Callback);
 		}
 
-		public static void Execute (this List<DisquuunInput> inputs, Action<DisqueCommand, DisquuunResult[]> Callback) {
+		public static void Execute (this List<List<DisquuunInput>> inputs, Action<DisqueCommand, DisquuunResult[]> Callback) {
 			if (!inputs.Any()) return;
-			var socket = inputs[0].socketPool.ChooseAvailableSocket();
+			if (!inputs[0].Any()) return;
 			
-			var commands = new Queue<DisqueCommand>();
-			foreach (var input in inputs) commands.Enqueue(input.command);
+			var socketPool = inputs[0][0].socketPool;
+			
+			for (var i = 0; i < inputs.Count; i++) {
+				var currentSlotInputs = inputs[i];
 
-			using (var memStream = new MemoryStream()) {
-				foreach (var input in inputs) memStream.Write(input.data, 0, input.data.Length);
-				var wholeData = memStream.ToArray();
+				var socket = socketPool.ChooseAvailableSocket();
+				
+				var commands = new Queue<DisqueCommand>();
+				foreach (var input in currentSlotInputs) commands.Enqueue(input.command);
+				
+				using (var memStream = new MemoryStream()) {
+					foreach (var input in currentSlotInputs) memStream.Write(input.data, 0, input.data.Length);
+					var wholeData = memStream.ToArray();
 
-				socket.Execute(
-					commands, 
-					wholeData,
-					(command, resultBytes) => {
-						Callback(command, resultBytes);
-						return false;
-					}
-				);
+					socket.Execute(
+						commands, 
+						wholeData,
+						(command, resultBytes) => {
+							Callback(command, resultBytes);
+							return false;
+						}
+					);
+				}
 			}
 
 			inputs.Clear();

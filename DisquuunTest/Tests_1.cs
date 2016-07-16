@@ -125,7 +125,7 @@ public partial class Tests {
 	}
 	
 	public void _1_4_Working_Sync (Disquuun disquuun) {
-		Disquuun.Log("_1_4_Working_Sync not yet applied");
+		DisquuunLogger.Log("_1_4_Working_Sync not yet applied");
 		
 		WaitUntil("_1_4_Working_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
@@ -143,7 +143,7 @@ public partial class Tests {
 	}
 	
 	public void _1_5_Nack_Sync (Disquuun disquuun) {
-		Disquuun.Log("_1_5_Nack_Sync not yet applied");
+		DisquuunLogger.Log("_1_5_Nack_Sync not yet applied");
 		
 		WaitUntil("_1_5_Nack_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
@@ -205,7 +205,7 @@ public partial class Tests {
 	
 	
 	public void _1_10_Qpeek_Sync (Disquuun disquuun) {
-		Disquuun.Log("_1_10_Qpeek_Sync not yet applied");
+		DisquuunLogger.Log("_1_10_Qpeek_Sync not yet applied");
 		// <queue-name> <count>
 		
 		WaitUntil("_1_10_Qpeek_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
@@ -222,7 +222,7 @@ public partial class Tests {
 	}
 	
 	public void _1_11_Enqueue_Sync (Disquuun disquuun) {
-		Disquuun.Log("_1_11_Enqueue_Sync not yet applied");
+		DisquuunLogger.Log("_1_11_Enqueue_Sync not yet applied");
 		// <job-id> ... <job-id>
 		
 		WaitUntil("_1_11_Enqueue_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
@@ -234,7 +234,7 @@ public partial class Tests {
 	}
 	
 	public void _1_12_Dequeue_Sync (Disquuun disquuun) {
-		Disquuun.Log("_1_12_Dequeue_Sync not yet applied");
+		DisquuunLogger.Log("_1_12_Dequeue_Sync not yet applied");
 		// <job-id> ... <job-id>
 		
 		WaitUntil("_1_12_Dequeue_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
@@ -246,7 +246,7 @@ public partial class Tests {
 	}
 	
 	public void _1_13_DelJob_Sync (Disquuun disquuun) {
-		Disquuun.Log("_1_13_DelJob_Sync not yet applied");
+		DisquuunLogger.Log("_1_13_DelJob_Sync not yet applied");
 		// <job-id> ... <job-id>
 		
 		WaitUntil("_1_13_DelJob_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
@@ -258,7 +258,7 @@ public partial class Tests {
 	}
 	
 	public void _1_14_Show_Sync (Disquuun disquuun) {
-		Disquuun.Log("_1_14_Show_Sync not yet applied");
+		DisquuunLogger.Log("_1_14_Show_Sync not yet applied");
 		// <job-id>
 		
 		WaitUntil("_1_14_Show_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
@@ -270,7 +270,7 @@ public partial class Tests {
 	}
 	
 	public void _1_15_Qscan_Sync (Disquuun disquuun) {
-		Disquuun.Log("_1_15_Qscan_Sync not yet applied");
+		DisquuunLogger.Log("_1_15_Qscan_Sync not yet applied");
 		// [COUNT <count>] [BUSYLOOP] [MINLEN <len>] [MAXLEN <len>] [IMPORTRATE <rate>]
 		
 		WaitUntil("_1_15_Qscan_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
@@ -282,7 +282,7 @@ public partial class Tests {
 	}
 	
 	public void _1_16_Jscan_Sync (Disquuun disquuun) {
-		Disquuun.Log("_1_16_Jscan_Sync not yet applied");
+		DisquuunLogger.Log("_1_16_Jscan_Sync not yet applied");
 		// [<cursor>] [COUNT <count>] [BUSYLOOP] [QUEUE <queue>] [STATE <state1> STATE <state2> ... STATE <stateN>] [REPLY all|id]
 		
 		WaitUntil("_1_16_Jscan_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
@@ -294,7 +294,7 @@ public partial class Tests {
 	}
 	
 	public void _1_17_Pause_Sync (Disquuun disquuun) {
-		Disquuun.Log("_1_17_Pause_Sync not yet applied");
+		DisquuunLogger.Log("_1_17_Pause_Sync not yet applied");
 		// <queue-name> option1 [option2 ... optionN]
 		
 		WaitUntil("_1_17_Pause_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);

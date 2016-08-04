@@ -73,6 +73,7 @@ namespace DisquuunCore {
 		
 		public readonly int minConnectionCount;
 
+		private object lockObject = new object();
 
 		public enum ConnectionState {
 			OPENING,
@@ -123,13 +124,14 @@ namespace DisquuunCore {
 		}
 
 		private void OnSocketOpened (DisquuunSocket source, string socketId) {
-			
 			if (connectionState != ConnectionState.OPENING) return;
 			var availableSocketCount = socketPool.AvailableSocketNum();
 
-			if (availableSocketCount == minConnectionCount) {
-				connectionState = ConnectionState.OPENED;
-				ConnectionOpened(connectionId);
+			lock (lockObject) {
+				if (connectionState != ConnectionState.OPENED && availableSocketCount == minConnectionCount) {
+					connectionState = ConnectionState.OPENED;
+					ConnectionOpened(connectionId);
+				}
 			}
 		}
 		

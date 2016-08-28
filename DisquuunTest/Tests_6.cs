@@ -63,6 +63,7 @@ public partial class Tests {
 
 		var stackedCommandCount = disquuun.StackedCommandCount();
 
+		// this assert "maybe" hit. not hit if sockets can run so fast.
 		Assert("_6_2_ExceededSocketShouldStacked", 0 < stackedCommandCount, "not match, " + stackedCommandCount);
 		WaitUntil("_6_2_ExceededSocketShouldStacked", () => (infoCount == connectCount), 5);
 	}

@@ -1,7 +1,7 @@
 #Disquuun
 
 C# Disque client.  
-ver 0.7.3 (only essential Disque commands and options are supported.)
+ver 0.7.4 (only essential Disque commands and options are supported.)
 
 DotNet Core 1.0 adopetd. Running on DotNet 3.5 ~ Core 1.0
 

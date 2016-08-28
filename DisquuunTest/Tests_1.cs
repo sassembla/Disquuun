@@ -21,6 +21,36 @@ public partial class Tests {
 		// ack in.
 		disquuun.FastAck(new string[]{jobId}).DEPRICATED_Sync();
 	}
+
+	public void _1_0_1_AddJob_Sync_TimeToLive (Disquuun disquuun) {
+		WaitUntil("_1_0_1_AddJob_Sync_TimeToLive", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		
+		var queueId = Guid.NewGuid().ToString();
+		var result = disquuun.AddJob(queueId, new byte[10], 0, "TTL", 100).DEPRICATED_Sync();
+		var jobId = DisquuunDeserializer.AddJob(result);
+		Assert("_1_0_1_AddJob_Sync_TimeToLive", !string.IsNullOrEmpty(jobId), "empty.");
+		
+		// ack in.
+		disquuun.FastAck(new string[]{jobId}).DEPRICATED_Sync();
+	}
+	
+	public void _1_0_2_AddJob_Sync_TimeToLive_Wait_Dead (Disquuun disquuun) {
+		WaitUntil("_1_0_2_AddJob_Sync_TimeToLive_Wait_Dead", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		
+		var queueId = Guid.NewGuid().ToString();
+		
+		var result = disquuun.AddJob(queueId, new byte[10], 0, "TTL", 1).DEPRICATED_Sync();
+		var jobId = DisquuunDeserializer.AddJob(result);
+		
+		WaitUntil("_1_0_2_AddJob_Sync_TimeToLive_Wait_Dead", () => !string.IsNullOrEmpty(jobId), 5);
+		
+		// wait 2 sec.
+		Wait("_1_0_2_AddJob_Sync_TimeToLive_Wait_Dead", 2);
+		
+		// ack in.
+		var len = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
+		Assert("_1_0_2_AddJob_Sync_TimeToLive_Wait_Dead", len == 0, "not match, len:" + len);
+	}
 	
 	public void _1_1_GetJob_Sync (Disquuun disquuun) {
 		WaitUntil("_1_1_GetJob_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);

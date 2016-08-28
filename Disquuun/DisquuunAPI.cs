@@ -120,7 +120,7 @@ namespace DisquuunCore {
 				if (0 < newArgs.Length) {
 					foreach (var option in newArgs) {
 						var optionBytes = Encoding.UTF8.GetBytes(option.ToString());
-						var optionCountBytes = Encoding.UTF8.GetBytes(newArgs.Length.ToString());
+						var optionCountBytes = Encoding.UTF8.GetBytes(optionBytes.Length.ToString());
 					
 						byteBuffer.Write(BytesBulk, 0, BytesBulk.Length);
 						byteBuffer.Write(optionCountBytes, 0, optionCountBytes.Length);

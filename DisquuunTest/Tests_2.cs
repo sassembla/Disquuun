@@ -61,7 +61,7 @@ public partial class Tests {
 		// wait 2 sec.
 		Wait("_2_0_2_AddJob_Async_TimeToLive_Wait_Dead", 2);
 		
-		// ack in.
+		// get queue len.
 		var len = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
 		Assert("_2_0_2_AddJob_Async_TimeToLive_Wait_Dead", len == 0, "not match, len:" + len);
 	}

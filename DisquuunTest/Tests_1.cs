@@ -33,7 +33,7 @@ public partial class Tests {
 		// ack in.
 		disquuun.FastAck(new string[]{jobId}).DEPRICATED_Sync();
 	}
-	
+
 	public void _1_0_2_AddJob_Sync_TimeToLive_Wait_Dead (Disquuun disquuun) {
 		WaitUntil("_1_0_2_AddJob_Sync_TimeToLive_Wait_Dead", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 		
@@ -47,7 +47,7 @@ public partial class Tests {
 		// wait 2 sec.
 		Wait("_1_0_2_AddJob_Sync_TimeToLive_Wait_Dead", 2);
 		
-		// ack in.
+		// get queue len.
 		var len = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
 		Assert("_1_0_2_AddJob_Sync_TimeToLive_Wait_Dead", len == 0, "not match, len:" + len);
 	}

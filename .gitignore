@@ -2,3 +2,11 @@
 *.meta
 
 Server/*
+
+bin/*
+
+obj/*
+
+nodes.conf
+
+test.log

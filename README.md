@@ -10,12 +10,13 @@ DotNet Core 1.0 adopetd. Running on DotNet 3.5 ~ Core 1.0
   * [Basic Usage](#basic-usage)
   * [Loop usage](#loop-usage)
   * [Pipeline usage](#pipeline-usage)
+  * [Test](#test)
   * [License](#license)
   * [Contribution](#contribution)
   
 
 ##Motivation
-Lightweight, async, zero copy, independent. not depends on any Redis code. 
+Lightweight, async, zero copy, independent. not depends on any Redis library code. 
 
 **Lightweight**  
 No threads contained,  
@@ -161,6 +162,12 @@ disquuun.Pipeline().Execute(
 	...
 );
 ```
+
+##Test
+This repository is DotNet Core project and runnable.
+And the project contains test codes of Disquuun.
+
+required and not contained: Disque Server.
 
 ##License
 MIT.

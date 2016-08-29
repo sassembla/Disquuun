@@ -277,7 +277,6 @@ namespace DisquuunCore {
 				case SocketError.Success: {
 					var token = args.UserToken as SocketToken;
 					
-				
 					switch (token.socketState) {
 						case SocketState.BUSY: {
 							token.socketState = SocketState.SENDED;
@@ -290,7 +289,17 @@ namespace DisquuunCore {
 								token.receiveArgs.SetBuffer(token.receiveBuffer, 0, token.receiveBuffer.Length);
 								if (!token.socket.ReceiveAsync(token.receiveArgs)) OnReceived(token.socket, token.receiveArgs);
 
-								token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
+								try {
+									token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
+								} catch {
+									// renew. potential error is exists and should avoid this error.
+									var sendArgs = new SocketAsyncEventArgs();
+									sendArgs.RemoteEndPoint = token.receiveArgs.RemoteEndPoint;
+									sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
+									sendArgs.UserToken = token;
+									token.sendArgs = sendArgs;
+									token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
+								}
 								if (!token.socket.SendAsync(token.sendArgs)) OnSend(token.socket, token.sendArgs);
 								return;
 							}

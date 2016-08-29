@@ -49,6 +49,8 @@ public partial class Tests {
 			tests.Add(_1_0_AddJob_Sync);
 			tests.Add(_1_0_1_AddJob_Sync_TimeToLive);
 			tests.Add(_1_0_2_AddJob_Sync_TimeToLive_Wait_Dead);
+			tests.Add(_1_0_3_AddJob_Sync_Retry);
+			tests.Add(_1_0_4_AddJob_Sync_Retry_0_And_TTL_1Sec);
 			tests.Add(_1_1_GetJob_Sync);
 			tests.Add(_1_1_1_GetJobWithCount_Sync);
 			tests.Add(_1_1_2_GetJobFromMultiQueue_Sync);
@@ -75,6 +77,8 @@ public partial class Tests {
 			tests.Add(_2_0_AddJob_Async);
 			tests.Add(_2_0_1_AddJob_Async_TimeToLive);
 			tests.Add(_2_0_2_AddJob_Async_TimeToLive_Wait_Dead);
+			tests.Add(_2_0_3_AddJob_Async_Retry);
+			tests.Add(_2_0_4_AddJob_Async_Retry_0_And_TTL_1Sec);
 			tests.Add(_2_1_GetJob_Async);
 			tests.Add(_2_1_1_GetJobWithCount_Async);
 			tests.Add(_2_1_2_GetJobFromMultiQueue_Async);

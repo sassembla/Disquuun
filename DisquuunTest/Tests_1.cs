@@ -51,6 +51,62 @@ public partial class Tests {
 		var len = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
 		Assert("_1_0_2_AddJob_Sync_TimeToLive_Wait_Dead", len == 0, "not match, len:" + len);
 	}
+
+	public void _1_0_3_AddJob_Sync_Retry (Disquuun disquuun) {
+		WaitUntil("_1_0_3_AddJob_Sync_Retry", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		
+		var queueId = Guid.NewGuid().ToString();
+		
+		var jobId = DisquuunDeserializer.AddJob(disquuun.AddJob(queueId, new byte[10], 0, "RETRY", 1).DEPRICATED_Sync());
+		
+		WaitUntil("_1_0_3_AddJob_Sync_Retry", () => !string.IsNullOrEmpty(jobId), 5);
+		
+		DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
+		
+		// getjob (but not ack it.)
+		DisquuunDeserializer.GetJob(disquuun.GetJob(new string[]{queueId}).DEPRICATED_Sync());
+		
+		var len1 = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
+		
+		// wait 2 sec.
+		Wait("_1_0_3_AddJob_Sync_Retry", 2);
+		
+		var len2 = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
+		Assert("_1_0_3_AddJob_Sync_Retry", len2 == 1, "not match, len2:" + len2);
+
+		disquuun.FastAck(new string[]{jobId}).DEPRICATED_Sync();
+	}
+
+	public void _1_0_4_AddJob_Sync_Retry_0_And_TTL_1Sec (Disquuun disquuun) {
+		WaitUntil("_1_0_4_AddJob_Sync_Retry_0_And_TTL_1Sec", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+		
+		var queueId = Guid.NewGuid().ToString();
+		
+		var jobId = DisquuunDeserializer.AddJob(disquuun.AddJob(queueId, new byte[10], 0, "RETRY", 0, "TTL", 1).DEPRICATED_Sync());
+		
+		WaitUntil("_1_0_4_AddJob_Sync_Retry_0_And_TTL_1Sec", () => !string.IsNullOrEmpty(jobId), 5);
+		
+		DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
+		
+		// getjob (but not ack it.)
+		DisquuunDeserializer.GetJob(disquuun.GetJob(new string[]{queueId}).DEPRICATED_Sync());
+		
+		// once, queue len should be zero by getJob.
+		var len1 = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
+		Assert("_1_0_4_AddJob_Sync_Retry_0_And_TTL_1Sec", len1 == 0, "not match, len1:" + len1);
+
+		// wait 2 sec.
+		Wait("_1_0_4_AddJob_Sync_Retry_0_And_TTL_1Sec", 2);
+		
+		// both qlen and info returns rest job == 0.
+
+		var len2 = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
+		Assert("_1_0_4_AddJob_Sync_Retry_0_And_TTL_1Sec", len2 == 0, "not match, len2:" + len2);
+
+		// and rest job is 0.
+		var info = DisquuunDeserializer.Info(disquuun.Info().DEPRICATED_Sync());
+		Assert("_1_0_4_AddJob_Sync_Retry_0_And_TTL_1Sec", info.jobs.registered_jobs == 0, "not match.");
+	}
 	
 	public void _1_1_GetJob_Sync (Disquuun disquuun) {
 		WaitUntil("_1_1_GetJob_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);

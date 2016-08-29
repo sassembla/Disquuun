@@ -61,19 +61,22 @@ public partial class Tests {
 		
 		WaitUntil("_1_0_3_AddJob_Sync_Retry", () => !string.IsNullOrEmpty(jobId), 5);
 		
-		DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
+		var len0 = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
+		// len0 is 1. job is added.
 		
 		// getjob (but not ack it.)
 		DisquuunDeserializer.GetJob(disquuun.GetJob(new string[]{queueId}).DEPRICATED_Sync());
 		
 		var len1 = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
+		// len1 is 0. job is deleted from queue.
 		
 		// wait 2 sec.
 		Wait("_1_0_3_AddJob_Sync_Retry", 2);
 		
 		var len2 = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
 		Assert("_1_0_3_AddJob_Sync_Retry", len2 == 1, "not match, len2:" + len2);
-
+		// job is returned to queue by retry param.
+		
 		disquuun.FastAck(new string[]{jobId}).DEPRICATED_Sync();
 	}
 

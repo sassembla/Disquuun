@@ -80,12 +80,14 @@ public partial class Tests {
 		
 		WaitUntil("_2_0_3_AddJob_Async_Retry", () => !string.IsNullOrEmpty(jobId), 5);
 		
-		DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
+		var len0 = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
+		// len0 is 1. job is added.
 		
 		// getjob (but not ack it.)
 		DisquuunDeserializer.GetJob(disquuun.GetJob(new string[]{queueId}).DEPRICATED_Sync());
 		
 		var len1 = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
+		// len1 is 0. job is deleted from queue.
 		
 		// wait 2 sec.
 		Wait("_2_0_3_AddJob_Async_Retry", 2);

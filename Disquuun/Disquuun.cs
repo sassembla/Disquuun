@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 
 namespace DisquuunCore {
-    public enum DisqueCommand {		
+	public enum DisqueCommand {		
 		ADDJOB,// queue_name job <ms-timeout> [REPLICATE <count>] [DELAY <sec>] [RETRY <sec>] [TTL <sec>] [MAXLEN <count>] [ASYNC]
 		GETJOB,// [NOHANG] [TIMEOUT <ms-timeout>] [COUNT <count>] [WITHCOUNTERS] FROM queue1 queue2 ... queueN
 		ACKJOB,// jobid1 jobid2 ... jobidN
@@ -57,7 +57,7 @@ namespace DisquuunCore {
 		PIPELINE
 	}
 	
-    public class Disquuun {
+	public class Disquuun {
 		public readonly string connectionId;
 		
 		public readonly long bufferSize;
@@ -204,7 +204,7 @@ namespace DisquuunCore {
 			return new DisquuunInput(DisqueCommand.FASTACK, bytes, socketPool);
 		}
 
-        public DisquuunInput Working (string jobId) {
+		public DisquuunInput Working (string jobId) {
 			var bytes = DisquuunAPI.Working(jobId);
 			
 			return new DisquuunInput(DisqueCommand.WORKING, bytes, socketPool);
@@ -216,7 +216,7 @@ namespace DisquuunCore {
 			return new DisquuunInput(DisqueCommand.NACK, bytes, socketPool);
 		}
 
-        public DisquuunInput Info () {
+		public DisquuunInput Info () {
 			var data = DisquuunAPI.Info();
 			
 			return new DisquuunInput(DisqueCommand.INFO, data, socketPool);
@@ -295,22 +295,26 @@ namespace DisquuunCore {
 		private int currentPipelineIndex = -1;
 
 		public List<List<DisquuunInput>> Pipeline(params DisquuunInput[] disquuunInput) {
-			if (0 < disquuunInput.Length) {
-				if (pipelineStack.Count == 0) currentPipelineIndex = 0;
+			lock (lockObject) {
+				if (0 < disquuunInput.Length) {
+					if (pipelineStack.Count == 0) currentPipelineIndex = 0;
 
-				if (pipelineStack.Count < currentPipelineIndex + 1) pipelineStack.Add(new List<DisquuunInput>());
-				pipelineStack[currentPipelineIndex].AddRange(disquuunInput);
+					if (pipelineStack.Count < currentPipelineIndex + 1) pipelineStack.Add(new List<DisquuunInput>());
+					pipelineStack[currentPipelineIndex].AddRange(disquuunInput);
+				}
+				return pipelineStack;
 			}
-			return pipelineStack;
-        }
+		}
 
 		public void RevolvePipeline () {
-			if (currentPipelineIndex == -1) return; 
-			if (pipelineStack.Count == 0) return;
-			
-			if (0 < pipelineStack[currentPipelineIndex].Count) currentPipelineIndex++;
+			lock (lockObject) {
+				if (currentPipelineIndex == -1) return; 
+				if (pipelineStack.Count == 0) return;
+				
+				if (0 < pipelineStack[currentPipelineIndex].Count) currentPipelineIndex++;
+			}
 		}
-    }
+	}
 
 	public static class DisquuunLogger {
 		public static void Log (string message, bool write=false) {
@@ -382,8 +386,8 @@ namespace DisquuunCore {
 			}
 		}
 
-        public int AvailableSocketNum() {
-            lock (lockObject) {
+		public int AvailableSocketNum() {
+			lock (lockObject) {
 				var availableSocketCount = 0;
 				for (var i = 0; i < sockets.Length; i++) {
 					var socket = sockets[i];
@@ -392,10 +396,10 @@ namespace DisquuunCore {
 				}
 				return availableSocketCount;
 			}
-        }
+		}
 
-        public int StackedCommandCount() {
-            lock (lockObject) return stackSocket.QueueCount();
-        }
-    }
+		public int StackedCommandCount() {
+			lock (lockObject) return stackSocket.QueueCount();
+		}
+	}
 }

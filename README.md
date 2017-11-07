@@ -1,11 +1,11 @@
-#Disquuun
+# Disquuun
 
 C# Disque client.  
 ver 0.7.6 (only essential Disque commands and options are supported.)
 
 DotNet Core 1.0 adopetd. Running on DotNet 3.5 ~ Core 1.1
 
-##Table of Contents
+## Table of Contents
   * [Motivation](#motivation)
   * [Basic Usage](#basic-usage)
   * [Loop usage](#loop-usage)
@@ -15,7 +15,7 @@ DotNet Core 1.0 adopetd. Running on DotNet 3.5 ~ Core 1.1
   * [Contribution](#contribution)
   
 
-##Motivation
+## Motivation
 Lightweight, async, zero copy, independent. not depends on any Redis library code. 
 
 **Lightweight**  
@@ -35,7 +35,7 @@ yes. it is for making allocation smaller than before.
 "n" means "this is written in C#".
 
 
-##Basic Usage
+## Basic Usage
 
 here is connect to Disque server -> AddJob -> GetJob -> FastAck async sample.  
 
@@ -89,7 +89,7 @@ WaitUntil(() => (fastAckedJobCount == 1), 5);
 Sync & Async api is supported. but Sync api is already deplicated.  
 (it is used for tests only.)
 
-##Loop usage
+## Loop usage
 Disquuun can repeat command easily.  
 Getting job with Loop() sample is below.
 
@@ -118,7 +118,7 @@ The Loop() method's frequency is depends on behaviour of the Dique's API.
 In this case you can wait the incoming of new job data and then keep waiting next job data.
 
 
-##Pipeline usage
+## Pipeline usage
 Disquuun enables Pipelining of Disque commands.
 Add -> Getting job with Pipeline sample is below.
 
@@ -163,15 +163,15 @@ disquuun.Pipeline().Execute(
 );
 ```
 
-##Test
+## Test
 This repository is DotNet Core project and runnable.
 And the project contains test codes of Disquuun.
 
 required and not contained: Disque Server.
 
-##License
+## License
 MIT.
 
 
-##Contribution
+## Contribution
 very welcome!! especially implement the read-block of received Disque commands and options.

@@ -43,16 +43,16 @@ namespace DisquuunTest
             waitHandle.WaitOne(Timeout.Infinite);
         }
 
-        // [Benchmark]
-        // public void Take10Connection2()
-        // {
-        //     var waitHandle = new ManualResetEvent(false);
-        //     disquuun.AddJob(qName, dataBytes2).Async((a, b) =>
-        //     {
-        //         waitHandle.Set();
-        //     });
-        //     waitHandle.WaitOne(Timeout.Infinite);
-        // }
+        [Benchmark]
+        public void Take10Connection2()
+        {
+            var waitHandle = new ManualResetEvent(false);
+            disquuun.AddJob(qName, dataBytes2).Async((a, b) =>
+            {
+                waitHandle.Set();
+            });
+            waitHandle.WaitOne(Timeout.Infinite);
+        }
 
         // [Benchmark]
         // public void Take10Connection3()
@@ -81,10 +81,10 @@ namespace DisquuunTest
         }
 
         [Benchmark]
-        public void Take_10byte_pipeline2()
+        public void Take_10byte_pipeline10()
         {
             var waitHandle = new ManualResetEvent(false);
-            for (var i = 0; i < 2; i++)
+            for (var i = 0; i < 10; i++)
             {
                 disquuun.Pipeline(disquuun.AddJob(qName, dataBytes1));
             }

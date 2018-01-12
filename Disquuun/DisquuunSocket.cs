@@ -7,7 +7,7 @@ using System.Net.Sockets;
 
 namespace DisquuunCore
 {
-    public class DisquuunSocket : StackSocket
+    public class DisquuunSocket : SocketBase
     {
         public readonly string socketId;
 
@@ -20,8 +20,16 @@ namespace DisquuunCore
 
         public bool IsChoosable()
         {
-            if (socketToken == null) return false;
-            if (socketToken.socketState == SocketState.OPENED) return true;
+            if (socketToken == null)
+            {
+                return false;
+            }
+
+            if (socketToken.socketState == SocketState.OPENED)
+            {
+                return true;
+            }
+
             return false;
         }
 
@@ -348,7 +356,10 @@ namespace DisquuunCore
                                             token.sendArgs = sendArgs;
                                             token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
                                         }
-                                        if (!token.socket.SendAsync(token.sendArgs)) OnSend(token.socket, token.sendArgs);
+                                        if (!token.socket.SendAsync(token.sendArgs))
+                                        {
+                                            OnSend(token.socket, token.sendArgs);
+                                        }
                                         return;
                                     }
 
@@ -534,7 +545,10 @@ namespace DisquuunCore
                                     token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
                                 }
 
-                                if (!token.socket.SendAsync(token.sendArgs)) OnSend(token.socket, token.sendArgs);
+                                if (!token.socket.SendAsync(token.sendArgs))
+                                {
+                                    OnSend(token.socket, token.sendArgs);
+                                }
 
                                 break;
                             }
@@ -638,20 +652,6 @@ namespace DisquuunCore
             }
             return;
         }
-
-        /*
-			utils
-		*/
-
-        private static bool IsSocketConnected(Socket s)
-        {
-            bool part1 = s.Poll(1000, SelectMode.SelectRead);
-            bool part2 = (s.Available == 0);
-
-            if (part1 && part2) return false;
-
-            return true;
-        }
     }
 
     public struct StackCommandData
@@ -667,62 +667,6 @@ namespace DisquuunCore
             this.commands = commands;
             this.data = dataSource;
             this.Callback = Callback;
-        }
-    }
-
-    public class StackSocket
-    {
-        private object stackLockObject = new object();
-
-        private Queue<StackCommandData> stackedDataQueue;
-
-        public int QueueCount()
-        {
-            lock (stackLockObject)
-            {
-                return stackedDataQueue.Count;
-            }
-        }
-
-        public bool IsQueued()
-        {
-            lock (stackLockObject)
-            {
-                if (0 < stackedDataQueue.Count) return true;
-                return false;
-            }
-        }
-        public StackCommandData Dequeue()
-        {
-            lock (stackLockObject)
-            {
-                return stackedDataQueue.Dequeue();
-            }
-        }
-
-        public StackSocket()
-        {
-            this.stackedDataQueue = new Queue<StackCommandData>();
-        }
-
-        public virtual DisquuunResult[] DEPRECATED_Sync(DisqueCommand command, byte[] data)
-        {
-            throw new Exception("deprecated & all sockets are using.");
-        }
-
-        public virtual void Async(Queue<DisqueCommand> commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
-        {
-            lock (stackLockObject) this.stackedDataQueue.Enqueue(new StackCommandData(DisquuunExecuteType.ASYNC, commands, data, Callback));
-        }
-
-        public virtual void Loop(Queue<DisqueCommand> commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
-        {
-            lock (stackLockObject) this.stackedDataQueue.Enqueue(new StackCommandData(DisquuunExecuteType.LOOP, commands, data, Callback));
-        }
-
-        public virtual void Execute(Queue<DisqueCommand> commands, byte[] wholeData, Func<DisqueCommand, DisquuunResult[], bool> Callback)
-        {
-            lock (stackLockObject) this.stackedDataQueue.Enqueue(new StackCommandData(DisquuunExecuteType.PIPELINE, commands, wholeData, Callback));
         }
     }
 
@@ -766,8 +710,14 @@ namespace DisquuunCore
 
         public static void Execute(this List<List<DisquuunInput>> inputs, Action<DisqueCommand, DisquuunResult[]> Callback)
         {
-            if (!inputs.Any()) return;
-            if (!inputs[0].Any()) return;
+            if (!inputs.Any())
+            {
+                return;
+            }
+            if (!inputs[0].Any())
+            {
+                return;
+            }
 
             var socketPool = inputs[0][0].socketPool;
 

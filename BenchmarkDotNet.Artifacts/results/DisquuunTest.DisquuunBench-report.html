@@ -16,17 +16,19 @@
 BenchmarkDotNet=v0.10.11, OS=macOS 10.12.6 (16G1114) [Darwin 16.7.0]
 Processor=Intel Core i7-7Y75 CPU 1.30GHz, ProcessorCount=4
 .NET Core SDK=2.0.0
-  [Host]     : .NET Core 2.0.0 (Framework 4.6.00001.0), 64bit RyuJIT
-  DefaultJob : .NET Core 2.0.0 (Framework 4.6.00001.0), 64bit RyuJIT
+  [Host]   : .NET Core 2.0.0 (Framework 4.6.00001.0), 64bit RyuJIT
+  ShortRun : .NET Core 2.0.0 (Framework 4.6.00001.0), 64bit RyuJIT
 </code></pre>
-<pre><code></code></pre>
+<pre><code>Job=ShortRun  LaunchCount=1  TargetCount=3  
+WarmupCount=3  
+</code></pre>
 
 <table>
-<thead><tr><th>         Method</th><th>Mean</th><th>Error</th><th>StdDev</th>
+<thead><tr><th>            Method</th><th>Mean</th><th>Error</th><th>StdDev</th>
 </tr>
-</thead><tbody><tr><td>    Take_10byte</td><td>75.66 us</td><td>1.503 us</td><td>2.633 us</td>
-</tr><tr><td>Take_10byte_pipeline</td><td>78.90 us</td><td>1.547 us</td><td>2.453 us</td>
-</tr><tr><td>Take_10byte_pipeline2</td><td>89.49 us</td><td>1.756 us</td><td>2.836 us</td>
+</thead><tbody><tr><td>Take_10byte_2sock_async</td><td>68.04 us</td><td>28.83 us</td><td>1.629 us</td>
+</tr><tr><td>Take_10byte_10sock_async</td><td>72.87 us</td><td>22.36 us</td><td>1.263 us</td>
+</tr><tr><td>Take_10byte_30sock_async</td><td>73.63 us</td><td>29.12 us</td><td>1.645 us</td>
 </tr></tbody></table>
 </body>
 </html>

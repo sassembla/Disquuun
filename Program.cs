@@ -1,82 +1,98 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
+using DisquuunCore;
 
-namespace Disquuun
+namespace DisquuunTest
 {
     class Program
     {
         static void Main(string[] args)
         {
-            BenchmarkRunner.Run<SomeTest>();
+            BenchmarkRunner.Run<DisquuunBench>();
         }
     }
 
-    public class SomeTest
+    public class DisquuunBench
     {
-        public int[] _array;
-        public List<int> _list;
+        public Disquuun disquuun;
+        const string qName = "testQueue";
+        byte[] dataBytes1 = new byte[10];
+        byte[] dataBytes2 = new byte[100];
+        byte[] dataBytes3 = new byte[1000];
 
-
-        public SomeTest()
+        public DisquuunBench()
         {
-            _array = Enumerable.Range(0, 10000).ToArray();
-            _list = _array.ToList();
+            disquuun = new Disquuun(
+                "127.0.0.1", 7711, 1024, 10
+            );
+        }
+
+        // ベンチ結果、サイズにはあまり左右されなかった。
+        [Benchmark]
+        public void Take_10byte()
+        {
+            var waitHandle = new ManualResetEvent(false);
+            disquuun.AddJob(qName, dataBytes1).Async((a, b) =>
+            {
+                waitHandle.Set();
+            });
+            waitHandle.WaitOne(Timeout.Infinite);
+        }
+
+        // [Benchmark]
+        // public void Take10Connection2()
+        // {
+        //     var waitHandle = new ManualResetEvent(false);
+        //     disquuun.AddJob(qName, dataBytes2).Async((a, b) =>
+        //     {
+        //         waitHandle.Set();
+        //     });
+        //     waitHandle.WaitOne(Timeout.Infinite);
+        // }
+
+        // [Benchmark]
+        // public void Take10Connection3()
+        // {
+        //     var waitHandle = new ManualResetEvent(false);
+        //     disquuun.AddJob(qName, dataBytes3).Async((a, b) =>
+        //     {
+        //         waitHandle.Set();
+        //     });
+        //     waitHandle.WaitOne(Timeout.Infinite);
+        // }
+
+        [Benchmark]
+        public void Take_10byte_pipeline()
+        {
+            var waitHandle = new ManualResetEvent(false);
+            for (var i = 0; i < 1; i++)
+            {
+                disquuun.Pipeline(disquuun.AddJob(qName, dataBytes1));
+            }
+            disquuun.Pipeline().Execute((a, b) =>
+            {
+                waitHandle.Set();
+            });
+            waitHandle.WaitOne(Timeout.Infinite);
         }
 
         [Benchmark]
-        public int UseArrayFor()
+        public void Take_10byte_pipeline2()
         {
-            var accum = 0;
-
-            for (int i = 0; i < _array.Length; i++)
+            var waitHandle = new ManualResetEvent(false);
+            for (var i = 0; i < 2; i++)
             {
-                accum += _array[i];
+                disquuun.Pipeline(disquuun.AddJob(qName, dataBytes1));
             }
-
-            return accum;
-        }
-
-
-        [Benchmark]
-        public int UseArrayForEach()
-        {
-            var accum = 0;
-
-            foreach (var i in _array)
+            disquuun.Pipeline().Execute((a, b) =>
             {
-                accum += i;
-            }
-
-            return accum;
-        }
-
-        [Benchmark]
-        public int UseListFor()
-        {
-            var accum = 0;
-
-            for (int i = 0; i < _list.Count; i++)
-            {
-                accum += _list[i];
-            }
-
-            return accum;
-        }
-
-        [Benchmark]
-        public int UseListForEach()
-        {
-            var accum = 0;
-
-            foreach (var i in _list)
-            {
-                accum += _list[i];
-            }
-
-            return accum;
+                waitHandle.Set();
+            });
+            waitHandle.WaitOne(Timeout.Infinite);
         }
     }
 }

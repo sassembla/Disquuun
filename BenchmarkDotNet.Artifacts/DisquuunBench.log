@@ -1,0 +1,517 @@
+// ***** BenchmarkRunner: Start   *****
+// Found benchmarks:
+//   DisquuunBench.Take_10byte: DefaultJob
+//   DisquuunBench.Take_10byte_pipeline: DefaultJob
+//   DisquuunBench.Take_10byte_pipeline2: DefaultJob
+
+// Validating benchmarks:
+// **************************
+// Benchmark: DisquuunBench.Take_10byte: DefaultJob
+// *** Generate *** 
+// Result = Success
+// BinariesDirectoryPath = /Users/passepied/Desktop/Disquuun/bin/release/netcoreapp2.0/6837bfda-caae-4ed3-a1b2-5d637e298737/bin/Release/netcoreapp2.0
+
+// *** Build ***
+// dotnet restore took 2.7s
+// dotnet build took 6.83s
+// Result = Success
+
+// *** Execute ***
+// Launch: 1 / 1
+Failed to set up high priority. Make sure you have the right permissions. Message: Permission denied
+
+// Benchmark Process Environment Information:
+// Runtime=.NET Core 2.0.0 (Framework 4.6.00001.0), 64bit RyuJIT
+// GC=Concurrent Workstation
+// Job: DefaultJob
+
+Pilot  1: 16 op, 1960000.00 ns, 122.5000 us/op
+Pilot  2: 32 op, 2614000.00 ns, 81.6875 us/op
+Pilot  3: 64 op, 3940000.00 ns, 61.5625 us/op
+Pilot  4: 128 op, 7884000.00 ns, 61.5938 us/op
+Pilot  5: 256 op, 16743000.00 ns, 65.4023 us/op
+Pilot  6: 512 op, 37822000.00 ns, 73.8711 us/op
+Pilot  7: 1024 op, 76795000.00 ns, 74.9951 us/op
+Pilot  8: 2048 op, 140776000.00 ns, 68.7383 us/op
+Pilot  9: 4096 op, 275190000.00 ns, 67.1851 us/op
+Pilot 10: 8192 op, 553226000.00 ns, 67.5325 us/op
+
+IdleWarmup  1: 8192 op, 18000.00 ns, 2.1973 ns/op
+IdleWarmup  2: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleWarmup  3: 8192 op, 15000.00 ns, 1.8311 ns/op
+IdleWarmup  4: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleWarmup  5: 8192 op, 13000.00 ns, 1.5869 ns/op
+IdleWarmup  6: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleWarmup  7: 8192 op, 13000.00 ns, 1.5869 ns/op
+
+IdleTarget  1: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleTarget  2: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleTarget  3: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleTarget  4: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleTarget  5: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleTarget  6: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleTarget  7: 8192 op, 13000.00 ns, 1.5869 ns/op
+IdleTarget  8: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleTarget  9: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleTarget 10: 8192 op, 13000.00 ns, 1.5869 ns/op
+IdleTarget 11: 8192 op, 13000.00 ns, 1.5869 ns/op
+IdleTarget 12: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleTarget 13: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleTarget 14: 8192 op, 14000.00 ns, 1.7090 ns/op
+IdleTarget 15: 8192 op, 14000.00 ns, 1.7090 ns/op
+
+MainWarmup  1: 8192 op, 600775000.00 ns, 73.3368 us/op
+MainWarmup  2: 8192 op, 549616000.00 ns, 67.0918 us/op
+MainWarmup  3: 8192 op, 588652000.00 ns, 71.8569 us/op
+MainWarmup  4: 8192 op, 622653000.00 ns, 76.0074 us/op
+MainWarmup  5: 8192 op, 556869000.00 ns, 67.9772 us/op
+MainWarmup  6: 8192 op, 559642000.00 ns, 68.3157 us/op
+MainWarmup  7: 8192 op, 599660000.00 ns, 73.2007 us/op
+MainWarmup  8: 8192 op, 585801000.00 ns, 71.5089 us/op
+
+MainTarget  1: 8192 op, 616870000.00 ns, 75.3015 us/op
+MainTarget  2: 8192 op, 632389000.00 ns, 77.1959 us/op
+MainTarget  3: 8192 op, 616173000.00 ns, 75.2164 us/op
+MainTarget  4: 8192 op, 626296000.00 ns, 76.4521 us/op
+MainTarget  5: 8192 op, 625704000.00 ns, 76.3799 us/op
+MainTarget  6: 8192 op, 616646000.00 ns, 75.2742 us/op
+MainTarget  7: 8192 op, 655752000.00 ns, 80.0479 us/op
+MainTarget  8: 8192 op, 654285000.00 ns, 79.8688 us/op
+MainTarget  9: 8192 op, 691849000.00 ns, 84.4542 us/op
+MainTarget 10: 8192 op, 652632000.00 ns, 79.6670 us/op
+MainTarget 11: 8192 op, 663383000.00 ns, 80.9794 us/op
+MainTarget 12: 8192 op, 625869000.00 ns, 76.4000 us/op
+MainTarget 13: 8192 op, 623982000.00 ns, 76.1697 us/op
+MainTarget 14: 8192 op, 608078000.00 ns, 74.2283 us/op
+MainTarget 15: 8192 op, 603908000.00 ns, 73.7192 us/op
+MainTarget 16: 8192 op, 600468000.00 ns, 73.2993 us/op
+MainTarget 17: 8192 op, 643418000.00 ns, 78.5422 us/op
+MainTarget 18: 8192 op, 604400000.00 ns, 73.7793 us/op
+MainTarget 19: 8192 op, 602169000.00 ns, 73.5070 us/op
+MainTarget 20: 8192 op, 607107000.00 ns, 74.1097 us/op
+MainTarget 21: 8192 op, 605923000.00 ns, 73.9652 us/op
+MainTarget 22: 8192 op, 604792000.00 ns, 73.8271 us/op
+MainTarget 23: 8192 op, 629873000.00 ns, 76.8888 us/op
+MainTarget 24: 8192 op, 622117000.00 ns, 75.9420 us/op
+MainTarget 25: 8192 op, 660280000.00 ns, 80.6006 us/op
+MainTarget 26: 8192 op, 633406000.00 ns, 77.3201 us/op
+MainTarget 27: 8192 op, 621236000.00 ns, 75.8345 us/op
+MainTarget 28: 8192 op, 606075000.00 ns, 73.9838 us/op
+MainTarget 29: 8192 op, 593220000.00 ns, 72.4146 us/op
+MainTarget 30: 8192 op, 588569000.00 ns, 71.8468 us/op
+MainTarget 31: 8192 op, 587091000.00 ns, 71.6664 us/op
+MainTarget 32: 8192 op, 585826000.00 ns, 71.5120 us/op
+MainTarget 33: 8192 op, 591491000.00 ns, 72.2035 us/op
+MainTarget 34: 8192 op, 662572000.00 ns, 80.8804 us/op
+MainTarget 35: 8192 op, 629466000.00 ns, 76.8391 us/op
+MainTarget 36: 8192 op, 634560000.00 ns, 77.4609 us/op
+MainTarget 37: 8192 op, 615744000.00 ns, 75.1641 us/op
+MainTarget 38: 8192 op, 608150000.00 ns, 74.2371 us/op
+MainTarget 39: 8192 op, 607964000.00 ns, 74.2144 us/op
+MainTarget 40: 8192 op, 605958000.00 ns, 73.9695 us/op
+
+Result  1: 8192 op, 616856200.00 ns, 75.2998 us/op
+Result  2: 8192 op, 632375200.00 ns, 77.1942 us/op
+Result  3: 8192 op, 616159200.00 ns, 75.2147 us/op
+Result  4: 8192 op, 626282200.00 ns, 76.4505 us/op
+Result  5: 8192 op, 625690200.00 ns, 76.3782 us/op
+Result  6: 8192 op, 616632200.00 ns, 75.2725 us/op
+Result  7: 8192 op, 655738200.00 ns, 80.0462 us/op
+Result  8: 8192 op, 654271200.00 ns, 79.8671 us/op
+Result  9: 8192 op, 652618200.00 ns, 79.6653 us/op
+Result 10: 8192 op, 663369200.00 ns, 80.9777 us/op
+Result 11: 8192 op, 625855200.00 ns, 76.3983 us/op
+Result 12: 8192 op, 623968200.00 ns, 76.1680 us/op
+Result 13: 8192 op, 608064200.00 ns, 74.2266 us/op
+Result 14: 8192 op, 603894200.00 ns, 73.7176 us/op
+Result 15: 8192 op, 600454200.00 ns, 73.2976 us/op
+Result 16: 8192 op, 643404200.00 ns, 78.5406 us/op
+Result 17: 8192 op, 604386200.00 ns, 73.7776 us/op
+Result 18: 8192 op, 602155200.00 ns, 73.5053 us/op
+Result 19: 8192 op, 607093200.00 ns, 74.1081 us/op
+Result 20: 8192 op, 605909200.00 ns, 73.9635 us/op
+Result 21: 8192 op, 604778200.00 ns, 73.8255 us/op
+Result 22: 8192 op, 629859200.00 ns, 76.8871 us/op
+Result 23: 8192 op, 622103200.00 ns, 75.9403 us/op
+Result 24: 8192 op, 660266200.00 ns, 80.5989 us/op
+Result 25: 8192 op, 633392200.00 ns, 77.3184 us/op
+Result 26: 8192 op, 621222200.00 ns, 75.8328 us/op
+Result 27: 8192 op, 606061200.00 ns, 73.9821 us/op
+Result 28: 8192 op, 593206200.00 ns, 72.4129 us/op
+Result 29: 8192 op, 588555200.00 ns, 71.8451 us/op
+Result 30: 8192 op, 587077200.00 ns, 71.6647 us/op
+Result 31: 8192 op, 585812200.00 ns, 71.5103 us/op
+Result 32: 8192 op, 591477200.00 ns, 72.2018 us/op
+Result 33: 8192 op, 662558200.00 ns, 80.8787 us/op
+Result 34: 8192 op, 629452200.00 ns, 76.8374 us/op
+Result 35: 8192 op, 634546200.00 ns, 77.4593 us/op
+Result 36: 8192 op, 615730200.00 ns, 75.1624 us/op
+Result 37: 8192 op, 608136200.00 ns, 74.2354 us/op
+Result 38: 8192 op, 607950200.00 ns, 74.2127 us/op
+Result 39: 8192 op, 605944200.00 ns, 73.9678 us/op
+GC:  240 0 0 0 327680
+
+
+Mean = 75.6626 us, StdErr = 0.4217 us (0.56%); N = 39, StdDev = 2.6332 us
+Min = 71.5103 us, Q1 = 73.8255 us, Median = 75.2725 us, Q3 = 77.1942 us, Max = 80.9777 us
+IQR = 3.3688 us, LowerFence = 68.7723 us, UpperFence = 82.2474 us
+ConfidenceInterval = [74.1592 us; 77.1661 us] (CI 99.9%), Margin = 1.5035 us (1.99% of Mean)
+Skewness = 0.48, Kurtosis = 2.31
+
+
+// **************************
+// Benchmark: DisquuunBench.Take_10byte_pipeline: DefaultJob
+// *** Generate *** 
+// Result = Success
+// BinariesDirectoryPath = /Users/passepied/Desktop/Disquuun/bin/release/netcoreapp2.0/db3d482c-37e9-400b-83d1-a81229984be8/bin/Release/netcoreapp2.0
+
+// *** Build ***
+// dotnet restore took 2.88s
+// dotnet build took 6.81s
+// Result = Success
+
+// *** Execute ***
+// Launch: 1 / 1
+Failed to set up high priority. Make sure you have the right permissions. Message: Permission denied
+
+// Benchmark Process Environment Information:
+// Runtime=.NET Core 2.0.0 (Framework 4.6.00001.0), 64bit RyuJIT
+// GC=Concurrent Workstation
+// Job: DefaultJob
+
+Pilot  1: 16 op, 2975000.00 ns, 185.9375 us/op
+Pilot  2: 32 op, 3529000.00 ns, 110.2813 us/op
+Pilot  3: 64 op, 4638000.00 ns, 72.4688 us/op
+Pilot  4: 128 op, 8942000.00 ns, 69.8594 us/op
+Pilot  5: 256 op, 19274000.00 ns, 75.2891 us/op
+Pilot  6: 512 op, 39874000.00 ns, 77.8789 us/op
+Pilot  7: 1024 op, 77190000.00 ns, 75.3809 us/op
+Pilot  8: 2048 op, 146703000.00 ns, 71.6323 us/op
+Pilot  9: 4096 op, 287438000.00 ns, 70.1753 us/op
+Pilot 10: 8192 op, 649556000.00 ns, 79.2915 us/op
+
+IdleWarmup  1: 8192 op, 18000.00 ns, 2.1973 ns/op
+IdleWarmup  2: 8192 op, 15000.00 ns, 1.8311 ns/op
+IdleWarmup  3: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleWarmup  4: 8192 op, 15000.00 ns, 1.8311 ns/op
+IdleWarmup  5: 8192 op, 15000.00 ns, 1.8311 ns/op
+IdleWarmup  6: 8192 op, 15000.00 ns, 1.8311 ns/op
+
+IdleTarget  1: 8192 op, 15000.00 ns, 1.8311 ns/op
+IdleTarget  2: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget  3: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget  4: 8192 op, 17000.00 ns, 2.0752 ns/op
+IdleTarget  5: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget  6: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget  7: 8192 op, 15000.00 ns, 1.8311 ns/op
+IdleTarget  8: 8192 op, 15000.00 ns, 1.8311 ns/op
+IdleTarget  9: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget 10: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget 11: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget 12: 8192 op, 17000.00 ns, 2.0752 ns/op
+IdleTarget 13: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget 14: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget 15: 8192 op, 17000.00 ns, 2.0752 ns/op
+
+MainWarmup  1: 8192 op, 608887000.00 ns, 74.3270 us/op
+MainWarmup  2: 8192 op, 628931000.00 ns, 76.7738 us/op
+MainWarmup  3: 8192 op, 593903000.00 ns, 72.4979 us/op
+MainWarmup  4: 8192 op, 591557000.00 ns, 72.2115 us/op
+MainWarmup  5: 8192 op, 611631000.00 ns, 74.6620 us/op
+MainWarmup  6: 8192 op, 628254000.00 ns, 76.6912 us/op
+MainWarmup  7: 8192 op, 629042000.00 ns, 76.7874 us/op
+MainWarmup  8: 8192 op, 627356000.00 ns, 76.5815 us/op
+
+MainTarget  1: 8192 op, 626671000.00 ns, 76.4979 us/op
+MainTarget  2: 8192 op, 662395000.00 ns, 80.8588 us/op
+MainTarget  3: 8192 op, 633039000.00 ns, 77.2753 us/op
+MainTarget  4: 8192 op, 627341000.00 ns, 76.5797 us/op
+MainTarget  5: 8192 op, 653074000.00 ns, 79.7209 us/op
+MainTarget  6: 8192 op, 669803000.00 ns, 81.7631 us/op
+MainTarget  7: 8192 op, 667129000.00 ns, 81.4366 us/op
+MainTarget  8: 8192 op, 673618000.00 ns, 82.2288 us/op
+MainTarget  9: 8192 op, 688221000.00 ns, 84.0114 us/op
+MainTarget 10: 8192 op, 675674000.00 ns, 82.4797 us/op
+MainTarget 11: 8192 op, 651969000.00 ns, 79.5861 us/op
+MainTarget 12: 8192 op, 640411000.00 ns, 78.1752 us/op
+MainTarget 13: 8192 op, 640772000.00 ns, 78.2192 us/op
+MainTarget 14: 8192 op, 627218000.00 ns, 76.5647 us/op
+MainTarget 15: 8192 op, 626458000.00 ns, 76.4719 us/op
+MainTarget 16: 8192 op, 625798000.00 ns, 76.3914 us/op
+MainTarget 17: 8192 op, 654134000.00 ns, 79.8503 us/op
+MainTarget 18: 8192 op, 654946000.00 ns, 79.9495 us/op
+MainTarget 19: 8192 op, 625294000.00 ns, 76.3298 us/op
+MainTarget 20: 8192 op, 623157000.00 ns, 76.0690 us/op
+MainTarget 21: 8192 op, 647793000.00 ns, 79.0763 us/op
+MainTarget 22: 8192 op, 646756000.00 ns, 78.9497 us/op
+MainTarget 23: 8192 op, 650859000.00 ns, 79.4506 us/op
+MainTarget 24: 8192 op, 647195000.00 ns, 79.0033 us/op
+MainTarget 25: 8192 op, 685206000.00 ns, 83.6433 us/op
+MainTarget 26: 8192 op, 680691000.00 ns, 83.0922 us/op
+MainTarget 27: 8192 op, 623727000.00 ns, 76.1385 us/op
+MainTarget 28: 8192 op, 625163000.00 ns, 76.3138 us/op
+MainTarget 29: 8192 op, 624519000.00 ns, 76.2352 us/op
+MainTarget 30: 8192 op, 656921000.00 ns, 80.1906 us/op
+MainTarget 31: 8192 op, 637984000.00 ns, 77.8789 us/op
+MainTarget 32: 8192 op, 628971000.00 ns, 76.7787 us/op
+MainTarget 33: 8192 op, 628287000.00 ns, 76.6952 us/op
+
+Result  1: 8192 op, 626655000.00 ns, 76.4960 us/op
+Result  2: 8192 op, 662379000.00 ns, 80.8568 us/op
+Result  3: 8192 op, 633023000.00 ns, 77.2733 us/op
+Result  4: 8192 op, 627325000.00 ns, 76.5778 us/op
+Result  5: 8192 op, 653058000.00 ns, 79.7190 us/op
+Result  6: 8192 op, 669787000.00 ns, 81.7611 us/op
+Result  7: 8192 op, 667113000.00 ns, 81.4347 us/op
+Result  8: 8192 op, 673602000.00 ns, 82.2268 us/op
+Result  9: 8192 op, 688205000.00 ns, 84.0094 us/op
+Result 10: 8192 op, 675658000.00 ns, 82.4778 us/op
+Result 11: 8192 op, 651953000.00 ns, 79.5841 us/op
+Result 12: 8192 op, 640395000.00 ns, 78.1732 us/op
+Result 13: 8192 op, 640756000.00 ns, 78.2173 us/op
+Result 14: 8192 op, 627202000.00 ns, 76.5627 us/op
+Result 15: 8192 op, 626442000.00 ns, 76.4700 us/op
+Result 16: 8192 op, 625782000.00 ns, 76.3894 us/op
+Result 17: 8192 op, 654118000.00 ns, 79.8484 us/op
+Result 18: 8192 op, 654930000.00 ns, 79.9475 us/op
+Result 19: 8192 op, 625278000.00 ns, 76.3279 us/op
+Result 20: 8192 op, 623141000.00 ns, 76.0670 us/op
+Result 21: 8192 op, 647777000.00 ns, 79.0743 us/op
+Result 22: 8192 op, 646740000.00 ns, 78.9478 us/op
+Result 23: 8192 op, 650843000.00 ns, 79.4486 us/op
+Result 24: 8192 op, 647179000.00 ns, 79.0013 us/op
+Result 25: 8192 op, 685190000.00 ns, 83.6414 us/op
+Result 26: 8192 op, 680675000.00 ns, 83.0902 us/op
+Result 27: 8192 op, 623711000.00 ns, 76.1366 us/op
+Result 28: 8192 op, 625147000.00 ns, 76.3119 us/op
+Result 29: 8192 op, 624503000.00 ns, 76.2333 us/op
+Result 30: 8192 op, 656905000.00 ns, 80.1886 us/op
+Result 31: 8192 op, 637968000.00 ns, 77.8770 us/op
+Result 32: 8192 op, 628955000.00 ns, 76.7767 us/op
+Result 33: 8192 op, 628271000.00 ns, 76.6932 us/op
+GC:  264 0 0 0 270336
+
+
+Mean = 78.9043 us, StdErr = 0.4271 us (0.54%); N = 33, StdDev = 2.4532 us
+Min = 76.0670 us, Q1 = 76.5294 us, Median = 78.9478 us, Q3 = 80.5227 us, Max = 84.0094 us
+IQR = 3.9933 us, LowerFence = 70.5393 us, UpperFence = 86.5127 us
+ConfidenceInterval = [77.3576 us; 80.4510 us] (CI 99.9%), Margin = 1.5467 us (1.96% of Mean)
+Skewness = 0.52, Kurtosis = 2
+
+
+// **************************
+// Benchmark: DisquuunBench.Take_10byte_pipeline2: DefaultJob
+// *** Generate *** 
+// Result = Success
+// BinariesDirectoryPath = /Users/passepied/Desktop/Disquuun/bin/release/netcoreapp2.0/a7b8f0df-a158-48ef-8f07-01c2e45d6545/bin/Release/netcoreapp2.0
+
+// *** Build ***
+// dotnet restore took 2.88s
+// dotnet build took 7.22s
+// Result = Success
+
+// *** Execute ***
+// Launch: 1 / 1
+Failed to set up high priority. Make sure you have the right permissions. Message: Permission denied
+
+// Benchmark Process Environment Information:
+// Runtime=.NET Core 2.0.0 (Framework 4.6.00001.0), 64bit RyuJIT
+// GC=Concurrent Workstation
+// Job: DefaultJob
+
+Pilot  1: 16 op, 2751000.00 ns, 171.9375 us/op
+Pilot  2: 32 op, 4218000.00 ns, 131.8125 us/op
+Pilot  3: 64 op, 5081000.00 ns, 79.3906 us/op
+Pilot  4: 128 op, 10721000.00 ns, 83.7578 us/op
+Pilot  5: 256 op, 22704000.00 ns, 88.6875 us/op
+Pilot  6: 512 op, 43699000.00 ns, 85.3496 us/op
+Pilot  7: 1024 op, 86126000.00 ns, 84.1074 us/op
+Pilot  8: 2048 op, 167376000.00 ns, 81.7266 us/op
+Pilot  9: 4096 op, 326956000.00 ns, 79.8232 us/op
+Pilot 10: 8192 op, 654525000.00 ns, 79.8981 us/op
+
+IdleWarmup  1: 8192 op, 19000.00 ns, 2.3193 ns/op
+IdleWarmup  2: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleWarmup  3: 8192 op, 15000.00 ns, 1.8311 ns/op
+IdleWarmup  4: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleWarmup  5: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleWarmup  6: 8192 op, 15000.00 ns, 1.8311 ns/op
+IdleWarmup  7: 8192 op, 16000.00 ns, 1.9531 ns/op
+
+IdleTarget  1: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget  2: 8192 op, 20000.00 ns, 2.4414 ns/op
+IdleTarget  3: 8192 op, 21000.00 ns, 2.5635 ns/op
+IdleTarget  4: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget  5: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget  6: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget  7: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget  8: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget  9: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget 10: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget 11: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget 12: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget 13: 8192 op, 16000.00 ns, 1.9531 ns/op
+IdleTarget 14: 8192 op, 15000.00 ns, 1.8311 ns/op
+IdleTarget 15: 8192 op, 16000.00 ns, 1.9531 ns/op
+
+MainWarmup  1: 8192 op, 644576000.00 ns, 78.6836 us/op
+MainWarmup  2: 8192 op, 647084000.00 ns, 78.9897 us/op
+MainWarmup  3: 8192 op, 656043000.00 ns, 80.0834 us/op
+MainWarmup  4: 8192 op, 665406000.00 ns, 81.2263 us/op
+MainWarmup  5: 8192 op, 714956000.00 ns, 87.2749 us/op
+MainWarmup  6: 8192 op, 664528000.00 ns, 81.1191 us/op
+MainWarmup  7: 8192 op, 664762000.00 ns, 81.1477 us/op
+MainWarmup  8: 8192 op, 669117000.00 ns, 81.6793 us/op
+MainWarmup  9: 8192 op, 674046000.00 ns, 82.2810 us/op
+MainWarmup 10: 8192 op, 691626000.00 ns, 84.4270 us/op
+MainWarmup 11: 8192 op, 697377000.00 ns, 85.1290 us/op
+MainWarmup 12: 8192 op, 762875000.00 ns, 93.1244 us/op
+MainWarmup 13: 8192 op, 791440000.00 ns, 96.6113 us/op
+MainWarmup 14: 8192 op, 758090000.00 ns, 92.5403 us/op
+
+MainTarget  1: 8192 op, 746849000.00 ns, 91.1681 us/op
+MainTarget  2: 8192 op, 778192000.00 ns, 94.9941 us/op
+MainTarget  3: 8192 op, 761463000.00 ns, 92.9520 us/op
+MainTarget  4: 8192 op, 761412000.00 ns, 92.9458 us/op
+MainTarget  5: 8192 op, 778020000.00 ns, 94.9731 us/op
+MainTarget  6: 8192 op, 739087000.00 ns, 90.2206 us/op
+MainTarget  7: 8192 op, 721133000.00 ns, 88.0289 us/op
+MainTarget  8: 8192 op, 722586000.00 ns, 88.2063 us/op
+MainTarget  9: 8192 op, 724578000.00 ns, 88.4495 us/op
+MainTarget 10: 8192 op, 730998000.00 ns, 89.2332 us/op
+MainTarget 11: 8192 op, 763252000.00 ns, 93.1704 us/op
+MainTarget 12: 8192 op, 839027000.00 ns, 102.4203 us/op
+MainTarget 13: 8192 op, 909240000.00 ns, 110.9912 us/op
+MainTarget 14: 8192 op, 778629000.00 ns, 95.0475 us/op
+MainTarget 15: 8192 op, 767750000.00 ns, 93.7195 us/op
+MainTarget 16: 8192 op, 748957000.00 ns, 91.4254 us/op
+MainTarget 17: 8192 op, 739180000.00 ns, 90.2319 us/op
+MainTarget 18: 8192 op, 738607000.00 ns, 90.1620 us/op
+MainTarget 19: 8192 op, 704766000.00 ns, 86.0310 us/op
+MainTarget 20: 8192 op, 702922000.00 ns, 85.8059 us/op
+MainTarget 21: 8192 op, 698327000.00 ns, 85.2450 us/op
+MainTarget 22: 8192 op, 745301000.00 ns, 90.9791 us/op
+MainTarget 23: 8192 op, 727760000.00 ns, 88.8379 us/op
+MainTarget 24: 8192 op, 720925000.00 ns, 88.0035 us/op
+MainTarget 25: 8192 op, 736559000.00 ns, 89.9120 us/op
+MainTarget 26: 8192 op, 725164000.00 ns, 88.5210 us/op
+MainTarget 27: 8192 op, 726254000.00 ns, 88.6541 us/op
+MainTarget 28: 8192 op, 707686000.00 ns, 86.3875 us/op
+MainTarget 29: 8192 op, 709430000.00 ns, 86.6003 us/op
+MainTarget 30: 8192 op, 706559000.00 ns, 86.2499 us/op
+MainTarget 31: 8192 op, 715912000.00 ns, 87.3916 us/op
+MainTarget 32: 8192 op, 719163000.00 ns, 87.7885 us/op
+MainTarget 33: 8192 op, 736785000.00 ns, 89.9396 us/op
+MainTarget 34: 8192 op, 711808000.00 ns, 86.8906 us/op
+MainTarget 35: 8192 op, 705002000.00 ns, 86.0598 us/op
+MainTarget 36: 8192 op, 725052000.00 ns, 88.5073 us/op
+
+Result  1: 8192 op, 746832466.67 ns, 91.1661 us/op
+Result  2: 8192 op, 778175466.67 ns, 94.9921 us/op
+Result  3: 8192 op, 761446466.67 ns, 92.9500 us/op
+Result  4: 8192 op, 761395466.67 ns, 92.9438 us/op
+Result  5: 8192 op, 778003466.67 ns, 94.9711 us/op
+Result  6: 8192 op, 739070466.67 ns, 90.2186 us/op
+Result  7: 8192 op, 721116466.67 ns, 88.0269 us/op
+Result  8: 8192 op, 722569466.67 ns, 88.2043 us/op
+Result  9: 8192 op, 724561466.67 ns, 88.4474 us/op
+Result 10: 8192 op, 730981466.67 ns, 89.2311 us/op
+Result 11: 8192 op, 763235466.67 ns, 93.1684 us/op
+Result 12: 8192 op, 778612466.67 ns, 95.0455 us/op
+Result 13: 8192 op, 767733466.67 ns, 93.7175 us/op
+Result 14: 8192 op, 748940466.67 ns, 91.4234 us/op
+Result 15: 8192 op, 739163466.67 ns, 90.2299 us/op
+Result 16: 8192 op, 738590466.67 ns, 90.1600 us/op
+Result 17: 8192 op, 704749466.67 ns, 86.0290 us/op
+Result 18: 8192 op, 702905466.67 ns, 85.8039 us/op
+Result 19: 8192 op, 698310466.67 ns, 85.2430 us/op
+Result 20: 8192 op, 745284466.67 ns, 90.9771 us/op
+Result 21: 8192 op, 727743466.67 ns, 88.8359 us/op
+Result 22: 8192 op, 720908466.67 ns, 88.0015 us/op
+Result 23: 8192 op, 736542466.67 ns, 89.9100 us/op
+Result 24: 8192 op, 725147466.67 ns, 88.5190 us/op
+Result 25: 8192 op, 726237466.67 ns, 88.6520 us/op
+Result 26: 8192 op, 707669466.67 ns, 86.3854 us/op
+Result 27: 8192 op, 709413466.67 ns, 86.5983 us/op
+Result 28: 8192 op, 706542466.67 ns, 86.2479 us/op
+Result 29: 8192 op, 715895466.67 ns, 87.3896 us/op
+Result 30: 8192 op, 719146466.67 ns, 87.7864 us/op
+Result 31: 8192 op, 736768466.67 ns, 89.9376 us/op
+Result 32: 8192 op, 711791466.67 ns, 86.8886 us/op
+Result 33: 8192 op, 704985466.67 ns, 86.0578 us/op
+Result 34: 8192 op, 725035466.67 ns, 88.5053 us/op
+GC:  468 0 0 0 294912
+
+
+Mean = 89.4901 us, StdErr = 0.4863 us (0.54%); N = 34, StdDev = 2.8355 us
+Min = 85.2430 us, Q1 = 87.3896 us, Median = 88.7440 us, Q3 = 91.1661 us, Max = 95.0455 us
+IQR = 3.7765 us, LowerFence = 81.7248 us, UpperFence = 96.8308 us
+ConfidenceInterval = [87.7342 us; 91.2461 us] (CI 99.9%), Margin = 1.7559 us (1.96% of Mean)
+Skewness = 0.5, Kurtosis = 2.16
+
+
+// ***** BenchmarkRunner: Finish  *****
+
+// * Export *
+  BenchmarkDotNet.Artifacts/results/DisquuunTest.DisquuunBench-report.csv
+  BenchmarkDotNet.Artifacts/results/DisquuunTest.DisquuunBench-report-github.md
+  BenchmarkDotNet.Artifacts/results/DisquuunTest.DisquuunBench-report.html
+
+// * Detailed results *
+DisquuunBench.Take_10byte: DefaultJob
+Runtime = .NET Core 2.0.0 (Framework 4.6.00001.0), 64bit RyuJIT; GC = Concurrent Workstation
+Mean = 75.6626 us, StdErr = 0.4217 us (0.56%); N = 39, StdDev = 2.6332 us
+Min = 71.5103 us, Q1 = 73.8255 us, Median = 75.2725 us, Q3 = 77.1942 us, Max = 80.9777 us
+IQR = 3.3688 us, LowerFence = 68.7723 us, UpperFence = 82.2474 us
+ConfidenceInterval = [74.1592 us; 77.1661 us] (CI 99.9%), Margin = 1.5035 us (1.99% of Mean)
+Skewness = 0.48, Kurtosis = 2.31
+
+
+DisquuunBench.Take_10byte_pipeline: DefaultJob
+Runtime = .NET Core 2.0.0 (Framework 4.6.00001.0), 64bit RyuJIT; GC = Concurrent Workstation
+Mean = 78.9043 us, StdErr = 0.4271 us (0.54%); N = 33, StdDev = 2.4532 us
+Min = 76.0670 us, Q1 = 76.5294 us, Median = 78.9478 us, Q3 = 80.5227 us, Max = 84.0094 us
+IQR = 3.9933 us, LowerFence = 70.5393 us, UpperFence = 86.5127 us
+ConfidenceInterval = [77.3576 us; 80.4510 us] (CI 99.9%), Margin = 1.5467 us (1.96% of Mean)
+Skewness = 0.52, Kurtosis = 2
+
+
+DisquuunBench.Take_10byte_pipeline2: DefaultJob
+Runtime = .NET Core 2.0.0 (Framework 4.6.00001.0), 64bit RyuJIT; GC = Concurrent Workstation
+Mean = 89.4901 us, StdErr = 0.4863 us (0.54%); N = 34, StdDev = 2.8355 us
+Min = 85.2430 us, Q1 = 87.3896 us, Median = 88.7440 us, Q3 = 91.1661 us, Max = 95.0455 us
+IQR = 3.7765 us, LowerFence = 81.7248 us, UpperFence = 96.8308 us
+ConfidenceInterval = [87.7342 us; 91.2461 us] (CI 99.9%), Margin = 1.7559 us (1.96% of Mean)
+Skewness = 0.5, Kurtosis = 2.16
+
+
+Total time: 00:02:06 (126.84 sec)
+
+// * Summary *
+
+BenchmarkDotNet=v0.10.11, OS=macOS 10.12.6 (16G1114) [Darwin 16.7.0]
+Processor=Intel Core i7-7Y75 CPU 1.30GHz, ProcessorCount=4
+.NET Core SDK=2.0.0
+  [Host]     : .NET Core 2.0.0 (Framework 4.6.00001.0), 64bit RyuJIT
+  DefaultJob : .NET Core 2.0.0 (Framework 4.6.00001.0), 64bit RyuJIT
+
+
+                Method |     Mean |    Error |   StdDev |
+---------------------- |---------:|---------:|---------:|
+           Take_10byte | 75.66 us | 1.503 us | 2.633 us |
+  Take_10byte_pipeline | 78.90 us | 1.547 us | 2.453 us |
+ Take_10byte_pipeline2 | 89.49 us | 1.756 us | 2.836 us |
+
+// * Hints *
+Outliers
+  DisquuunBench.Take_10byte: Default           -> 1 outlier  was  removed
+  DisquuunBench.Take_10byte_pipeline2: Default -> 2 outliers were removed
+
+// * Legends *
+  Mean   : Arithmetic mean of all measurements
+  Error  : Half of 99.9% confidence interval
+  StdDev : Standard deviation of all measurements
+  1 us   : 1 Microsecond (0.000001 sec)
+
+// ***** BenchmarkRunner: End *****
+// * Artifacts cleanup *

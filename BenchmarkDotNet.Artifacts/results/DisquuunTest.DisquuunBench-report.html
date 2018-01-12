@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>SomeTest</title>
+<title>DisquuunBench</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -22,12 +22,11 @@ Processor=Intel Core i7-7Y75 CPU 1.30GHz, ProcessorCount=4
 <pre><code></code></pre>
 
 <table>
-<thead><tr><th>   Method</th><th>Mean</th><th>Error</th><th>StdDev</th>
+<thead><tr><th>         Method</th><th>Mean</th><th>Error</th><th>StdDev</th>
 </tr>
-</thead><tbody><tr><td>UseArrayFor</td><td>6.443 us</td><td>0.1243 us</td><td>0.1823 us</td>
-</tr><tr><td>UseArrayForEach</td><td>5.231 us</td><td>0.0979 us</td><td>0.0818 us</td>
-</tr><tr><td>UseListFor</td><td>12.999 us</td><td>0.2599 us</td><td>0.7158 us</td>
-</tr><tr><td>UseListForEach</td><td>37.976 us</td><td>0.7483 us</td><td>0.8007 us</td>
+</thead><tbody><tr><td>    Take_10byte</td><td>75.66 us</td><td>1.503 us</td><td>2.633 us</td>
+</tr><tr><td>Take_10byte_pipeline</td><td>78.90 us</td><td>1.547 us</td><td>2.453 us</td>
+</tr><tr><td>Take_10byte_pipeline2</td><td>89.49 us</td><td>1.756 us</td><td>2.836 us</td>
 </tr></tbody></table>
 </body>
 </html>

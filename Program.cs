@@ -17,13 +17,15 @@ namespace DisquuunTest
         }
     }
 
-    [ShortRunJob]
+    // [ShortRunJob]
     public class DisquuunBench
     {
         public Disquuun disquuun2;
         public Disquuun disquuun10;
         public Disquuun disquuun30;
+
         const string qName = "testQueue";
+
         byte[] dataBytes1 = new byte[10];
         byte[] dataBytes2 = new byte[100];
         byte[] dataBytes3 = new byte[1000];

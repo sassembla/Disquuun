@@ -47,7 +47,7 @@ namespace DisquuunCore
             throw new Exception("deprecated & all sockets are using.");
         }
 
-        public virtual void Async(Queue<DisqueCommand> commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
+        public virtual void Async(DisqueCommand[] commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
             lock (stackLockObject)
             {
@@ -55,7 +55,7 @@ namespace DisquuunCore
             }
         }
 
-        public virtual void Loop(Queue<DisqueCommand> commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
+        public virtual void Loop(DisqueCommand[] commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
             lock (stackLockObject)
             {
@@ -63,7 +63,7 @@ namespace DisquuunCore
             }
         }
 
-        public virtual void Execute(Queue<DisqueCommand> commands, byte[] wholeData, Func<DisqueCommand, DisquuunResult[], bool> Callback)
+        public virtual void Execute(DisqueCommand[] commands, byte[] wholeData, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
             lock (stackLockObject)
             {

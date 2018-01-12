@@ -10,6 +10,7 @@ namespace DisquuunCore
     public class DisquuunSocket : SocketBase
     {
         public readonly string socketId;
+        private int pipelineIndex = 0;
 
         private Action<DisquuunSocket, string> SocketOpened;
         public Action<DisquuunSocket> SocketReloaded;
@@ -68,7 +69,7 @@ namespace DisquuunCore
             public bool isPipeline;
             public bool continuation;
 
-            public Queue<DisqueCommand> currentCommands;
+            public DisqueCommand[] currentCommands;
             public byte[] currentSendingBytes;
 
             public Func<DisqueCommand, DisquuunCore.DisquuunResult[], bool> AsyncCallback;
@@ -171,7 +172,7 @@ namespace DisquuunCore
                     {
                         if (socketToken.receiveBuffer.Length < readableLength)
                         {
-                            // Disquuun.Log("サイズオーバーしてる " + socketToken.receiveBuffer.Length + " vs:" + readableLength);
+                            DisquuunLogger.Log("サイズオーバーしてる " + socketToken.receiveBuffer.Length + " vs:" + readableLength);
                             Array.Resize(ref socketToken.receiveBuffer, readableLength);
                         }
                     }
@@ -187,6 +188,7 @@ namespace DisquuunCore
                     // if need, prepare for next 1 byte.
                     if (socketToken.receiveBuffer.Length == readableLength)
                     {
+                        DisquuunLogger.Log("サイズオーバーしてる2 " + socketToken.receiveBuffer.Length + " vs:" + readableLength);
                         Array.Resize(ref socketToken.receiveBuffer, socketToken.receiveBuffer.Length + 1);
                     }
                 }
@@ -205,7 +207,7 @@ namespace DisquuunCore
         /**
 			method for Async execution of specific Disque command.
 		*/
-        public override void Async(Queue<DisqueCommand> commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
+        public override void Async(DisqueCommand[] commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
             switch (socketToken.socketState)
             {
@@ -220,7 +222,7 @@ namespace DisquuunCore
         /**
 			method for start Looping of specific Disque command.
 		*/
-        public override void Loop(Queue<DisqueCommand> commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
+        public override void Loop(DisqueCommand[] commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
             switch (socketToken.socketState)
             {
@@ -235,7 +237,7 @@ namespace DisquuunCore
         /**
 			method for execute pipelined commands.
 		*/
-        public override void Execute(Queue<DisqueCommand> commands, byte[] wholeData, Func<DisqueCommand, DisquuunResult[], bool> Callback)
+        public override void Execute(DisqueCommand[] commands, byte[] wholeData, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
             switch (socketToken.socketState)
             {
@@ -247,21 +249,24 @@ namespace DisquuunCore
             }
         }
 
-
-        /*
-			default pooled socket + disposable socket shared 
-		*/
-        private void StartReceiveAndSendDataAsync(Queue<DisqueCommand> commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
+        private void StartReceiveAndSendDataAsync(DisqueCommand[] commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
             // ready for receive.
             socketToken.readableDataLength = 0;
 
             socketToken.receiveArgs.SetBuffer(socketToken.receiveBuffer, 0, socketToken.receiveBuffer.Length);
-            if (!socketToken.socket.ReceiveAsync(socketToken.receiveArgs)) OnReceived(socketToken.socket, socketToken.receiveArgs);
+            if (!socketToken.socket.ReceiveAsync(socketToken.receiveArgs))
+            {
+                OnReceived(socketToken.socket, socketToken.receiveArgs);
+            }
 
             // if multiple commands exist, set as pipeline.
             socketToken.isPipeline = false;
-            if (1 < commands.Count) socketToken.isPipeline = true;
+            if (1 < commands.Length)
+            {
+                socketToken.isPipeline = true;
+                pipelineIndex = 0;
+            }
 
             socketToken.currentCommands = commands;
             socketToken.currentSendingBytes = data;
@@ -288,8 +293,8 @@ namespace DisquuunCore
 
 
         /*
-			handlers
-		*/
+            handlers
+        */
         private void OnConnect(object unused, SocketAsyncEventArgs args)
         {
             var token = (SocketToken)args.UserToken;
@@ -305,11 +310,10 @@ namespace DisquuunCore
                             SocketClosed(this, "connect failed.", error);
                             return;
                         }
-                        // lock (socketLockObject) {
+
                         token.socketState = SocketState.OPENED;
                         SocketOpened(this, socketId);
                         return;
-                        // }
                     }
                 default:
                     {
@@ -422,27 +426,37 @@ namespace DisquuunCore
                 }
             }
 
-            if (args.BytesTransferred == 0) return;
+            if (args.BytesTransferred == 0)
+            {
+                return;
+            }
 
             var bytesAmount = args.BytesTransferred;
 
             // update token-dataLength as read completed.
             token.readableDataLength = token.readableDataLength + bytesAmount;
 
-            if (token.isPipeline) PipelineReceive(token);
-            else LoopOrAsyncReceive(token);
+            if (token.isPipeline)
+            {
+                PipelineReceive(token);
+            }
+            else
+            {
+                LoopOrAsyncReceive(token);
+            }
         }
 
         private void PipelineReceive(SocketToken token)
         {
             var fromCursor = 0;
 
+
             /*
-				read data from receiveBuffer by moving fromCursor.
-			*/
+                read data from receiveBuffer by moving fromCursor.
+            */
             while (true)
             {
-                var currentCommand = token.currentCommands.Peek();
+                var currentCommand = token.currentCommands[pipelineIndex];
                 var result = DisquuunAPI.ScanBuffer(currentCommand, token.receiveBuffer, fromCursor, token.readableDataLength, socketId);
 
                 if (result.isDone)
@@ -450,9 +464,9 @@ namespace DisquuunCore
                     token.AsyncCallback(currentCommand, result.data);
 
                     // deque as read done.
-                    token.currentCommands.Dequeue();
+                    pipelineIndex++;
 
-                    if (token.currentCommands.Count == 0)
+                    if (token.currentCommands.Length == pipelineIndex)
                     {
                         // pipelining is over.
                         switch (token.socketState)
@@ -491,8 +505,8 @@ namespace DisquuunCore
                 }
 
                 /*
-					reading is not completed. the fragment of command exists.
-				*/
+                    reading is not completed. the fragment of command exists.
+                */
 
                 var fragmentDataLength = token.readableDataLength - fromCursor;
 
@@ -506,7 +520,7 @@ namespace DisquuunCore
 
         private void LoopOrAsyncReceive(SocketToken token)
         {
-            var currentCommand = token.currentCommands.Peek();
+            var currentCommand = token.currentCommands[0];
             var result = DisquuunAPI.ScanBuffer(currentCommand, token.receiveBuffer, 0, token.readableDataLength, socketId);
 
             if (result.isDone && result.cursor == token.readableDataLength)
@@ -596,38 +610,38 @@ namespace DisquuunCore
             token.readableDataLength = receiveAfterFragmentIndex;
 
             /*
-				get readable size of already received data for next read=OnReceived.
-				resize if need.
-			*/
+                get readable size of already received data for next read=OnReceived.
+                resize if need.
+            */
             var nextAdditionalBytesLength = token.socket.Available;
             if (receiveAfterFragmentIndex == token.receiveBuffer.Length) Array.Resize(ref token.receiveBuffer, token.receiveArgs.Buffer.Length + nextAdditionalBytesLength);
 
             /*
-				note that,
-				
-				SetBuffer([buffer], offset, count)'s "count" is, actually not count.
-					
-				it's "offset" is "offset of receiving-data-window against buffer",
-				but the "count" is actually "size limitation of next receivable data size".
-				
-				this "size" should be smaller than size of current bufferSize - offset && larger than 0.
-				
-				e.g.
-					if buffer is buffer[10], offset can set 0 ~ 8, and,
-					count should be 9 ~ 1.
-				
-				if vaiolate to this rule, ReceiveAsync never receive data. not good behaviour.
-				
-				and, the "buffer" is treated as pointer. this API treats the pointer of buffer directly.
-				this means, when the byteTransferred is reaching to the size of "buffer", then you resize it to proper size,
-				
-				you should re-set the buffer's pointer by using SetBuffer API.
-				
-				
-				actually, SetBuffer's parameters are below.
-				
-				socket.SetBuffer([bufferAsPointer], additionalDataOffset, receiveSizeLimit)
-			*/
+                note that,
+
+                SetBuffer([buffer], offset, count)'s "count" is, actually not count.
+
+                it's "offset" is "offset of receiving-data-window against buffer",
+                but the "count" is actually "size limitation of next receivable data size".
+
+                this "size" should be smaller than size of current bufferSize - offset && larger than 0.
+
+                e.g.
+                    if buffer is buffer[10], offset can set 0 ~ 8, and,
+                    count should be 9 ~ 1.
+
+                if vaiolate to this rule, ReceiveAsync never receive data. not good behaviour.
+
+                and, the "buffer" is treated as pointer. this API treats the pointer of buffer directly.
+                this means, when the byteTransferred is reaching to the size of "buffer", then you resize it to proper size,
+
+                you should re-set the buffer's pointer by using SetBuffer API.
+
+
+                actually, SetBuffer's parameters are below.
+
+                socket.SetBuffer([bufferAsPointer], additionalDataOffset, receiveSizeLimit)
+            */
             var receivableCount = token.receiveBuffer.Length - receiveAfterFragmentIndex;
 
             // should set token.receiveBuffer to receiveArgs. because it was resized or not.
@@ -657,11 +671,11 @@ namespace DisquuunCore
     public struct StackCommandData
     {
         public readonly DisquuunExecuteType executeType;
-        public readonly Queue<DisqueCommand> commands;
+        public readonly DisqueCommand[] commands;
         public readonly byte[] data;
         public readonly Func<DisqueCommand, DisquuunResult[], bool> Callback;
 
-        public StackCommandData(DisquuunExecuteType executeType, Queue<DisqueCommand> commands, byte[] dataSource, Func<DisqueCommand, DisquuunResult[], bool> Callback)
+        public StackCommandData(DisquuunExecuteType executeType, DisqueCommand[] commands, byte[] dataSource, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
             this.executeType = executeType;
             this.commands = commands;
@@ -672,8 +686,8 @@ namespace DisquuunCore
 
 
     /**
-		extension definition for DisquuunSocket.
-	*/
+        extension definition for DisquuunSocket.
+*/
     public static class DisquuunExtension
     {
         public static DisquuunResult[] DEPRICATED_Sync(this DisquuunInput input)
@@ -685,8 +699,7 @@ namespace DisquuunCore
         public static void Async(this DisquuunInput input, Action<DisqueCommand, DisquuunResult[]> Callback)
         {
             var socket = input.socketPool.ChooseAvailableSocket();
-            var commands = new Queue<DisqueCommand>();
-            commands.Enqueue(input.command);
+            var commands = new DisqueCommand[] { input.command };
 
             socket.Async(
                 commands,
@@ -702,8 +715,7 @@ namespace DisquuunCore
         public static void Loop(this DisquuunInput input, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
             var socket = input.socketPool.ChooseAvailableSocket();
-            var commands = new Queue<DisqueCommand>();
-            commands.Enqueue(input.command);
+            var commands = new DisqueCommand[] { input.command };
 
             socket.Loop(commands, input.data, Callback);
         }
@@ -727,12 +739,20 @@ namespace DisquuunCore
 
                 var socket = socketPool.ChooseAvailableSocket();
 
-                var commands = new Queue<DisqueCommand>();
-                foreach (var input in currentSlotInputs) commands.Enqueue(input.command);
+                var commands = new DisqueCommand[currentSlotInputs.Count];
+                for (var j = 0; j < currentSlotInputs.Count; j++)
+                {
+                    commands[j] = currentSlotInputs[j].command;
+                }
 
                 using (var memStream = new MemoryStream())
                 {
-                    foreach (var input in currentSlotInputs) memStream.Write(input.data, 0, input.data.Length);
+                    for (var j = 0; j < currentSlotInputs.Count; j++)
+                    {
+                        var input = currentSlotInputs[j];
+                        memStream.Write(input.data, 0, input.data.Length);
+                    }
+
                     var wholeData = memStream.ToArray();
 
                     socket.Execute(

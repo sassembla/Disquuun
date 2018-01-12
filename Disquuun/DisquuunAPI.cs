@@ -59,7 +59,10 @@ namespace DisquuunCore
 
             var newArgs = new object[1 + args.Length];
             newArgs[0] = timeout;
-            for (var i = 1; i < newArgs.Length; i++) newArgs[i] = args[i - 1];
+            for (var i = 1; i < newArgs.Length; i++)
+            {
+                newArgs[i] = args[i - 1];
+            }
 
             using (var byteBuffer = new MemoryStream())
             {
@@ -129,8 +132,9 @@ namespace DisquuunCore
                 // "$" + option.Length + "\r\n" + option + "\r\n"
                 if (0 < newArgs.Length)
                 {
-                    foreach (var option in newArgs)
+                    for (var i = 0; i < newArgs.Length; i++)
                     {
+                        var option = newArgs[i];
                         var optionBytes = Encoding.UTF8.GetBytes(option.ToString());
                         var optionCountBytes = Encoding.UTF8.GetBytes(optionBytes.Length.ToString());
 
@@ -165,9 +169,7 @@ namespace DisquuunCore
                 }
                 parameters[i] = queueIds[i - (args.Length + 1)];
             }
-            // foreach (var i in parameters) {
-            // 	Log("i:" + i);
-            // }
+
             return ToBytes(DisqueCommand.GETJOB, parameters);
         }
 
@@ -269,8 +271,9 @@ namespace DisquuunCore
 
                 sb.Append(CharBulk).Append(Encoding.UTF8.GetByteCount(command)).Append(CharEOL).Append(command).Append(CharEOL);
 
-                foreach (var arg in args)
+                for (var i = 0; i < args.Length; i++)
                 {
+                    var arg = args[i];
                     var str = String.Format(CultureInfo.InvariantCulture, "{0}", arg);
                     sb.Append(CharBulk)
                         .Append(Encoding.UTF8.GetByteCount(str))

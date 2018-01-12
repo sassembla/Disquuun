@@ -6,7 +6,7 @@ namespace DisquuunCore
 {
     public class DisquuunSocketPool
     {
-        private DisquuunSocket[] sockets;
+        private DisquuunSocket[] sockets;// ここを可変式にすべき
 
         private SocketBase stackSocket;
 
@@ -34,8 +34,9 @@ namespace DisquuunCore
         {
             lock (lockObject)
             {
-                foreach (var socket in sockets)
+                for (var i = 0; i < sockets.Length; i++)
                 {
+                    var socket = sockets[i];
                     socket.Disconnect();
                 }
             }

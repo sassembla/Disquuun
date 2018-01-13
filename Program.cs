@@ -13,8 +13,8 @@ namespace DisquuunTest
     {
         static void Main(string[] args)
         {
-            BenchmarkRunner.Run<DisquuunBench>();
-            // DisquuunTests.Start();
+            // BenchmarkRunner.Run<DisquuunBench>();
+            DisquuunTests.Start();
         }
     }
 
@@ -146,6 +146,65 @@ namespace DisquuunTest
             waitHandle.WaitOne(Timeout.Infinite);
         }
 
+
+        // 10 item.
+        [Benchmark]
+        public void Take_10byte_2sock_sync_10item()
+        {
+            for (var i = 0; i < 10; i++)
+            {
+                disquuun2.AddJob(qName, dataBytes1).DEPRICATED_Sync();
+            }
+        }
+
+        [Benchmark]
+        public void Take_10byte_10sock_async_10item()
+        {
+            var localLock = new object();
+            var waitHandle = new ManualResetEvent(false);
+            var j = 0;
+            for (var i = 0; i < 10; i++)
+            {
+                disquuun10.AddJob(qName, dataBytes1).Async((a, b) =>
+                {
+                    lock (localLock)
+                    {
+                        j++;
+                        if (j == 10)
+                        {
+                            waitHandle.Set();
+                        }
+                    }
+                });
+            }
+            waitHandle.WaitOne(Timeout.Infinite);
+        }
+
+        [Benchmark]
+        public void Take_10byte_30sock_async_10item()
+        {
+            var localLock = new object();
+            var waitHandle = new ManualResetEvent(false);
+            var j = 0;
+            for (var i = 0; i < 10; i++)
+            {
+                disquuun30.AddJob(qName, dataBytes1).Async((a, b) =>
+                {
+                    lock (localLock)
+                    {
+                        j++;
+                        if (j == 10)
+                        {
+                            waitHandle.Set();
+                        }
+                    }
+                });
+            }
+            waitHandle.WaitOne(Timeout.Infinite);
+        }
+
+        // pipelines, 1 item.
+
         [Benchmark]
         public void Take_10byte_2sock_pipeline()
         {
@@ -181,6 +240,54 @@ namespace DisquuunTest
         {
             var waitHandle = new ManualResetEvent(false);
             for (var i = 0; i < 1; i++)
+            {
+                disquuun30.Pipeline(disquuun30.AddJob(qName, dataBytes1));
+            }
+            disquuun30.Pipeline().Execute((a, b) =>
+            {
+                waitHandle.Set();
+            });
+            waitHandle.WaitOne(Timeout.Infinite);
+        }
+
+
+        // pipelines, 10 item.
+
+        [Benchmark]
+        public void Take_10byte_2sock_pipeline_10()
+        {
+            var waitHandle = new ManualResetEvent(false);
+            for (var i = 0; i < 10; i++)
+            {
+                disquuun2.Pipeline(disquuun2.AddJob(qName, dataBytes1));
+            }
+            disquuun2.Pipeline().Execute((a, b) =>
+            {
+                waitHandle.Set();
+            });
+            waitHandle.WaitOne(Timeout.Infinite);
+        }
+
+        [Benchmark]
+        public void Take_10byte_10sock_pipeline_10()
+        {
+            var waitHandle = new ManualResetEvent(false);
+            for (var i = 0; i < 10; i++)
+            {
+                disquuun10.Pipeline(disquuun10.AddJob(qName, dataBytes1));
+            }
+            disquuun10.Pipeline().Execute((a, b) =>
+            {
+                waitHandle.Set();
+            });
+            waitHandle.WaitOne(Timeout.Infinite);
+        }
+
+        [Benchmark]
+        public void Take_10byte_30sock_pipeline_10()
+        {
+            var waitHandle = new ManualResetEvent(false);
+            for (var i = 0; i < 10; i++)
             {
                 disquuun30.Pipeline(disquuun30.AddJob(qName, dataBytes1));
             }

@@ -57,7 +57,7 @@ namespace DisquuunCore
                     }
                 }
 
-                Console.WriteLine("socket shortage.");
+                Console.WriteLine("socket shortage. sockets.Length:" + sockets.Length);
                 return stackSocket;
             }
         }

@@ -13,34 +13,84 @@ namespace DisquuunTest
     {
         static void Main(string[] args)
         {
-            BenchmarkRunner.Run<DisquuunBench>();
+            // BenchmarkRunner.Run<DisquuunBench>();
+            Disquuun disquuun = null;
+            var sampleQueueName = Guid.NewGuid().ToString();
+            var n = 10;
+
+            var waitHandles = new ManualResetEvent[n];
+            for (var i = 0; i < n; i++)
+            {
+                waitHandles[i] = new ManualResetEvent(false);
+            }
+            disquuun = new Disquuun(
+                "127.0.0.1", 7711, 1024, 1, id =>
+                {
+                    for (var i = 0; i < n; i++)
+                    {
+                        disquuun.AddJob(sampleQueueName, new byte[100]).Async(
+                            (command, data) =>
+                            {
+                                Console.WriteLine("a:" + i);
+                                waitHandles[i].Set();
+                            }
+                        );
+                    }
+                }
+            );
+
+            waitHandles[n - 1].WaitOne(Timeout.Infinite);
         }
     }
 
-    // [ShortRunJob]
+    [ShortRunJob]
     public class DisquuunBench
     {
         public Disquuun disquuun2;
-        public Disquuun disquuun10;
-        public Disquuun disquuun30;
+        // public Disquuun disquuun10;
+        // public Disquuun disquuun30;
 
         const string qName = "testQueue";
 
         byte[] dataBytes1 = new byte[10];
-        byte[] dataBytes2 = new byte[100];
-        byte[] dataBytes3 = new byte[1000];
+        // byte[] dataBytes2 = new byte[100];
+        // byte[] dataBytes3 = new byte[1000];
 
         public DisquuunBench()
         {
-            disquuun2 = new Disquuun(
-                "127.0.0.1", 7711, 1024, 2
-            );
-            disquuun10 = new Disquuun(
-                "127.0.0.1", 7711, 1024, 10
-            );
-            disquuun30 = new Disquuun(
-                "127.0.0.1", 7711, 1024, 30
-            );
+            {
+                var waitHandle = new ManualResetEvent(false);
+                disquuun2 = new Disquuun(
+                    "127.0.0.1", 7711, 1024, 2, id =>
+                    {
+                        waitHandle.Set();
+                        // Console.WriteLine("ready2");
+                    }
+                );
+                waitHandle.WaitOne(Timeout.Infinite);
+            }
+            // {
+            //     var waitHandle = new ManualResetEvent(false);
+            //     disquuun10 = new Disquuun(
+            //         "127.0.0.1", 7711, 1024, 10, id =>
+            //         {
+            //             waitHandle.Set();
+            //             // Console.WriteLine("ready10");
+            //         }
+            //     );
+            //     waitHandle.WaitOne(Timeout.Infinite);
+            // }
+            // {
+            //     var waitHandle = new ManualResetEvent(false);
+            //     disquuun30 = new Disquuun(
+            //         "127.0.0.1", 7711, 1024, 30, id =>
+            //         {
+            //             waitHandle.Set();
+            //             // Console.WriteLine("ready30");
+            //         }
+            //     );
+            //     waitHandle.WaitOne(Timeout.Infinite);
+            // }
         }
 
         // [Benchmark]
@@ -67,26 +117,32 @@ namespace DisquuunTest
         }
 
         [Benchmark]
-        public void Take_10byte_10sock_async()
+        public void Take_10byte_2sock_sync()
         {
-            var waitHandle = new ManualResetEvent(false);
-            disquuun10.AddJob(qName, dataBytes1).Async((a, b) =>
-            {
-                waitHandle.Set();
-            });
-            waitHandle.WaitOne(Timeout.Infinite);
+            disquuun2.AddJob(qName, dataBytes1).DEPRICATED_Sync();
         }
 
-        [Benchmark]
-        public void Take_10byte_30sock_async()
-        {
-            var waitHandle = new ManualResetEvent(false);
-            disquuun30.AddJob(qName, dataBytes1).Async((a, b) =>
-            {
-                waitHandle.Set();
-            });
-            waitHandle.WaitOne(Timeout.Infinite);
-        }
+        // [Benchmark]
+        // public void Take_10byte_10sock_async()
+        // {
+        //     var waitHandle = new ManualResetEvent(false);
+        //     disquuun10.AddJob(qName, dataBytes1).Async((a, b) =>
+        //     {
+        //         waitHandle.Set();
+        //     });
+        //     waitHandle.WaitOne(Timeout.Infinite);
+        // }
+
+        // [Benchmark]
+        // public void Take_10byte_30sock_async()
+        // {
+        //     var waitHandle = new ManualResetEvent(false);
+        //     disquuun30.AddJob(qName, dataBytes1).Async((a, b) =>
+        //     {
+        //         waitHandle.Set();
+        //     });
+        //     waitHandle.WaitOne(Timeout.Infinite);
+        // }
 
         // [Benchmark]
         // public void Take10Connection2()
@@ -111,14 +167,14 @@ namespace DisquuunTest
         // // }
 
         // [Benchmark]
-        // public void Take_10byte_pipeline()
+        // public void Take_10byte_2sock_pipeline()
         // {
         //     var waitHandle = new ManualResetEvent(false);
         //     for (var i = 0; i < 1; i++)
         //     {
-        //         disquuun.Pipeline(disquuun.AddJob(qName, dataBytes1));
+        //         disquuun2.Pipeline(disquuun2.AddJob(qName, dataBytes1));
         //     }
-        //     disquuun.Pipeline().Execute((a, b) =>
+        //     disquuun2.Pipeline().Execute((a, b) =>
         //     {
         //         waitHandle.Set();
         //     });
@@ -126,14 +182,29 @@ namespace DisquuunTest
         // }
 
         // [Benchmark]
-        // public void Take_10byte_pipeline10()
+        // public void Take_10byte_10sock_pipeline()
         // {
         //     var waitHandle = new ManualResetEvent(false);
-        //     for (var i = 0; i < 10; i++)
+        //     for (var i = 0; i < 1; i++)
         //     {
-        //         disquuun.Pipeline(disquuun.AddJob(qName, dataBytes1));
+        //         disquuun10.Pipeline(disquuun10.AddJob(qName, dataBytes1));
         //     }
-        //     disquuun.Pipeline().Execute((a, b) =>
+        //     disquuun10.Pipeline().Execute((a, b) =>
+        //     {
+        //         waitHandle.Set();
+        //     });
+        //     waitHandle.WaitOne(Timeout.Infinite);
+        // }
+
+        // [Benchmark]
+        // public void Take_10byte_30sock_pipeline()
+        // {
+        //     var waitHandle = new ManualResetEvent(false);
+        //     for (var i = 0; i < 1; i++)
+        //     {
+        //         disquuun30.Pipeline(disquuun30.AddJob(qName, dataBytes1));
+        //     }
+        //     disquuun30.Pipeline().Execute((a, b) =>
         //     {
         //         waitHandle.Set();
         //     });

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
+using System.Text;
 
 namespace DisquuunCore
 {
@@ -68,7 +70,6 @@ namespace DisquuunCore
     {
         public readonly string connectionId;
 
-        public readonly long bufferSize;
         public readonly IPEndPoint endPoint;
 
         public ConnectionState connectionState;
@@ -103,7 +104,6 @@ namespace DisquuunCore
         {
             this.connectionId = Guid.NewGuid().ToString();
 
-            this.bufferSize = bufferSize;
             this.endPoint = new IPEndPoint(IPAddress.Parse(host), port);
 
             this.connectionState = ConnectionState.OPENING;
@@ -407,10 +407,20 @@ namespace DisquuunCore
 
     public static class DisquuunLogger
     {
+        public static StringBuilder builder = new StringBuilder();
+        const string header = "disquuun_log:";
         public static void Log(string message, bool write = false)
         {
             // TestLogger.Log(message, write);
-            Console.WriteLine("log:" + message);
+            // Console.WriteLine("log:" + message);
+            // builder.Append(header + message);
+            // if (write)
+            // {
+            using (var sw = new StreamWriter("log", true))
+            {
+                sw.WriteLine(header + message);
+            }
+            // }
         }
     }
 }

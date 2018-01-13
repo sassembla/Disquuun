@@ -614,7 +614,11 @@ namespace DisquuunCore
                 resize if need.
             */
             var nextAdditionalBytesLength = token.socket.Available;
-            if (receiveAfterFragmentIndex == token.receiveBuffer.Length) Array.Resize(ref token.receiveBuffer, token.receiveArgs.Buffer.Length + nextAdditionalBytesLength);
+            if (receiveAfterFragmentIndex == token.receiveBuffer.Length)
+            {
+                DisquuunLogger.Log("サイズオーバーしてる3 " + socketToken.receiveBuffer.Length + " vs:" + receiveAfterFragmentIndex);
+                Array.Resize(ref token.receiveBuffer, token.receiveArgs.Buffer.Length + nextAdditionalBytesLength);
+            }
 
             /*
                 note that,

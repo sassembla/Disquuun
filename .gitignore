@@ -10,3 +10,4 @@ obj/*
 nodes.conf
 
 test.log
+BenchmarkDotNet.Artifacts/DisquuunBench.log

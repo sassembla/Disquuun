@@ -12,21 +12,15 @@ namespace DisquuunCore
         public readonly string socketId;
         private int pipelineIndex = 0;
 
-        private Action<DisquuunSocket, string> SocketOpened;
+        private Action<DisquuunSocket, int> SocketOpened;
         public Action<DisquuunSocket> SocketReloaded;
         private Action<DisquuunSocket, string, Exception> SocketClosed;
 
 
         private SocketToken socketToken;
 
-        public bool IsChoosable()
+        public bool IsAvailable()
         {
-            if (socketToken == null)
-            {
-                DisquuunLogger.Log("IsChoosable socketToken is null.");
-                return false;
-            }
-
             if (socketToken.socketState == SocketState.OPENED)
             {
                 return true;
@@ -94,13 +88,16 @@ namespace DisquuunCore
                 this.receiveArgs.SetBuffer(receiveBuffer, 0, receiveBuffer.Length);
             }
         }
+        public readonly int socketIndex;
 
         public DisquuunSocket(
-            Action<DisquuunSocket, string> SocketOpenedAct,
+            int index,
+            Action<DisquuunSocket, int> SocketOpenedAct,
             Action<DisquuunSocket> SocketReloadedAct,
             Action<DisquuunSocket, string, Exception> SocketClosedAct
         )
         {
+            this.socketIndex = index;
             this.socketId = Guid.NewGuid().ToString();
 
             this.SocketOpened = SocketOpenedAct;
@@ -128,6 +125,7 @@ namespace DisquuunCore
                 receiveArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnReceived);
 
                 socketToken = new SocketToken(clientSocket, bufferSize, connectArgs, sendArgs, receiveArgs);
+
                 socketToken.socketState = SocketState.OPENING;
 
                 // start connect.
@@ -173,7 +171,6 @@ namespace DisquuunCore
                     {
                         if (socketToken.receiveBuffer.Length < readableLength)
                         {
-                            DisquuunLogger.Log("サイズオーバーしてる " + socketToken.receiveBuffer.Length + " vs:" + readableLength);
                             Array.Resize(ref socketToken.receiveBuffer, readableLength);
                         }
                     }
@@ -189,7 +186,6 @@ namespace DisquuunCore
                     // if need, prepare for next 1 byte.
                     if (socketToken.receiveBuffer.Length == readableLength)
                     {
-                        DisquuunLogger.Log("サイズオーバーしてる2 " + socketToken.receiveBuffer.Length + " vs:" + readableLength);
                         Array.Resize(ref socketToken.receiveBuffer, socketToken.receiveBuffer.Length + 1);
                     }
                 }
@@ -200,7 +196,6 @@ namespace DisquuunCore
             }
             catch (Exception e)
             {
-                DisquuunLogger.Log("DEPRECATED_Sync error:" + e, true);
                 throw e;
             }
         }
@@ -281,7 +276,6 @@ namespace DisquuunCore
                 }
                 catch (Exception e)
                 {
-                    DisquuunLogger.Log("error on StartReceiveAndSendDataAsync. state:" + socketToken.socketState + " error:" + e);
                     // renew. potential error is exists and should avoid this error.
                     var sendArgs = new SocketAsyncEventArgs();
                     sendArgs.RemoteEndPoint = socketToken.receiveArgs.RemoteEndPoint;
@@ -297,9 +291,9 @@ namespace DisquuunCore
                     OnSend(socketToken.socket, socketToken.sendArgs);
                 }
             }
-            catch (Exception e)
+            catch
             {
-                DisquuunLogger.Log("error on StartReceiveAndSendDataAsync:" + e);
+
             }
         }
 
@@ -319,19 +313,18 @@ namespace DisquuunCore
                             token.socketState = SocketState.CLOSED;
                             var error = new Exception("connect error:" + args.SocketError.ToString());
 
-                            DisquuunLogger.Log("error on OnConnect1. state:" + token.socketState + " error:" + error);
                             SocketClosed(this, "connect failed.", error);
                             return;
                         }
 
                         token.socketState = SocketState.OPENED;
-                        SocketOpened(this, socketId);
+                        SocketOpened(this, socketIndex);
                         return;
                     }
                 default:
                     {
-                        DisquuunLogger.Log("error on OnConnect2. state:" + token.socketState);
-                        throw new Exception("socket state does not correct:" + token.socketState);
+                        SocketClosed(this, "connect failed.", new Exception("socket state does not correct:" + token.socketState));
+                        return;
                     }
             }
         }
@@ -364,10 +357,8 @@ namespace DisquuunCore
                                         {
                                             token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
                                         }
-                                        catch (Exception e)
+                                        catch
                                         {
-
-                                            DisquuunLogger.Log("error on OnSend. state:" + token.socketState + " error:" + e);
                                             // renew. potential error is exists and should avoid this error.
                                             var sendArgs = new SocketAsyncEventArgs();
                                             sendArgs.RemoteEndPoint = token.receiveArgs.RemoteEndPoint;
@@ -419,23 +410,9 @@ namespace DisquuunCore
                         }
                     default:
                         {
-                            switch (args.SocketError)
-                            {
-                                case SocketError.ConnectionReset:
-                                    {
-                                        DisquuunLogger.Log("ConnectionResetが出てる. " + " token.socketState:" + token.socketState, true);
-                                        break;
-                                    }
-                                default:
-                                    {
-                                        DisquuunLogger.Log("onReceive default token.socketState:" + token.socketState + " error:" + args.SocketError, true);
-                                        break;
-                                    }
-                            }
-
                             Disconnect();
 
-                            var e1 = new Exception("receive status is not good.");
+                            var e1 = new Exception("receive status is not good. socket error:" + args.SocketError);
                             SocketClosed(this, "failed to receive.", e1);
                             return;
                         }
@@ -632,7 +609,6 @@ namespace DisquuunCore
             var nextAdditionalBytesLength = token.socket.Available;
             if (receiveAfterFragmentIndex == token.receiveBuffer.Length)
             {
-                DisquuunLogger.Log("サイズオーバーしてる3 " + socketToken.receiveBuffer.Length + " vs:" + receiveAfterFragmentIndex);
                 Array.Resize(ref token.receiveBuffer, token.receiveArgs.Buffer.Length + nextAdditionalBytesLength);
             }
 
@@ -678,11 +654,14 @@ namespace DisquuunCore
                 socketToken.socketState = SocketState.CLOSING;
                 socketToken.socket.Shutdown(SocketShutdown.Both);
                 socketToken.socket.Dispose();
-                socketToken.socketState = SocketState.CLOSED;
             }
-            catch (Exception e)
+            catch
             {
-                DisquuunLogger.Log("Disconnect e:" + e.Message, true);
+
+            }
+            finally
+            {
+                socketToken.socketState = SocketState.CLOSED;
             }
             return;
         }
@@ -707,7 +686,7 @@ namespace DisquuunCore
 
     /**
         extension definition for DisquuunSocket.
-*/
+	*/
     public static class DisquuunExtension
     {
         public static DisquuunResult[] DEPRICATED_Sync(this DisquuunInput input)

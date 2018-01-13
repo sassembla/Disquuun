@@ -4,9 +4,6 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="DisquuunTest\*.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="benchmarkdotnet" Version="0.10.11" />
   </ItemGroup>
 </Project>

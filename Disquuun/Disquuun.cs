@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -74,13 +75,11 @@ namespace DisquuunCore
 
         public ConnectionState connectionState;
 
-
+        public readonly long bufferSize;
         private readonly Action<string> ConnectionOpened;
         private readonly Action<string, Exception> ConnectionFailed;
 
         private DisquuunSocketPool socketPool;
-
-        public readonly int minConnectionCount;
 
         private object lockObject = new object();
 
@@ -92,12 +91,12 @@ namespace DisquuunCore
             ALLCLOSING,
             ALLCLOSED
         }
-
+        private Hashtable defaultConnectionIndexies;
         public Disquuun(
             string host,
             int port,
             long bufferSize,
-            int minConnectionCount,
+            int defaultConnectionCount,
             Action<string> ConnectionOpenedAct = null,
             Action<string, Exception> ConnectionFailedAct = null
         )
@@ -134,10 +133,15 @@ namespace DisquuunCore
                 this.ConnectionFailed = (info, e) => { };
             }
 
-            this.minConnectionCount = minConnectionCount;
+            defaultConnectionIndexies = new Hashtable();
+            for (var i = 0; i < defaultConnectionCount; i++)
+            {
+                defaultConnectionIndexies.Add(i, false);
+            }
 
-            this.socketPool = new DisquuunSocketPool(minConnectionCount, this.OnSocketOpened, this.OnSocketConnectionFailed);
+            this.socketPool = new DisquuunSocketPool(defaultConnectionCount, this.OnSocketOpened, this.OnSocketConnectionFailed);
 
+            this.bufferSize = bufferSize;
             this.socketPool.Connect(endPoint, bufferSize);
         }
 
@@ -146,73 +150,42 @@ namespace DisquuunCore
             return socketPool.StackedCommandCount();
         }
 
-        private void OnSocketOpened(DisquuunSocket source, string socketId)
+        private void OnSocketOpened(DisquuunSocket source, int socketIndex)
         {
-            if (connectionState != ConnectionState.OPENING)
+            if (!(bool)defaultConnectionIndexies[socketIndex])
             {
-                return;
-            }
-
-            var availableSocketCount = socketPool.AvailableSocketNum();
-
-            lock (lockObject)
-            {
-                if (connectionState != ConnectionState.OPENED && availableSocketCount == minConnectionCount)
+                lock (lockObject)
                 {
-                    connectionState = ConnectionState.OPENED;
-                    ConnectionOpened(connectionId);
+                    defaultConnectionIndexies[socketIndex] = true;
+                }
+
+                for (var i = 0; i < defaultConnectionIndexies.Count; i++)
+                {
+                    if (!(bool)defaultConnectionIndexies[i])
+                    {
+                        return;
+                    }
                 }
             }
+
+            connectionState = ConnectionState.OPENED;
+            ConnectionOpened(connectionId);
         }
 
         private void OnSocketConnectionFailed(DisquuunSocket source, string info, Exception e)
         {
-            UpdateState();
+            connectionState = ConnectionState.OPENED_RECOVERING;
+            DisquuunLogger.Log("OnSocketConnectionFailedで、失敗原因はなんだかわからないが動作を継続する必要がありそう。info:" + info + " error:" + e);
+
             if (ConnectionFailed != null)
             {
                 ConnectionFailed("OnSocketConnectionFailed:" + info, e);
             }
         }
 
-        private ConnectionState UpdateState()
-        {
-
-            var availableSocketCount = socketPool.AvailableSocketNum();
-
-            switch (connectionState)
-            {
-                case ConnectionState.OPENING:
-                    {
-                        if (availableSocketCount == minConnectionCount)
-                        {
-                            connectionState = ConnectionState.OPENED;
-                        }
-                        return connectionState;
-                    }
-                case ConnectionState.OPENED:
-                    {
-                        if (availableSocketCount != minConnectionCount)
-                        {
-                            connectionState = ConnectionState.OPENED_RECOVERING;
-                        }
-                        return connectionState;
-                    }
-                default:
-                    {
-                        if (availableSocketCount == minConnectionCount)
-                        {
-                            connectionState = ConnectionState.OPENED;
-                        }
-                        break;
-                    }
-            }
-            return connectionState;
-        }
-
-
         public ConnectionState State()
         {
-            return UpdateState();
+            return connectionState;
         }
 
         public void Disconnect()
@@ -227,10 +200,9 @@ namespace DisquuunCore
         }
 
 
-
         /*
-			Disque API gateway
-		*/
+            Disque API gateway
+        */
         public DisquuunInput AddJob(string queueName, byte[] data, int timeout = 0, params object[] args)
         {
             var bytes = DisquuunAPI.AddJob(queueName, data, timeout, args);
@@ -358,8 +330,8 @@ namespace DisquuunCore
         }
 
         /*
-			pipelines
-		*/
+            pipelines
+        */
         private List<List<DisquuunInput>> pipelineStack = new List<List<DisquuunInput>>();
         private int currentPipelineIndex = -1;
 
@@ -422,6 +394,7 @@ namespace DisquuunCore
                 {
                     sw.WriteLine(builder.ToString());
                 }
+                builder.Clear();
             }
         }
     }

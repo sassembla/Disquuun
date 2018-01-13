@@ -1,5 +1,7 @@
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Net;
 
 namespace DisquuunCore
@@ -8,17 +10,18 @@ namespace DisquuunCore
     {
         private DisquuunSocket[] sockets;// ここを可変式にすべき
 
-        private SocketBase stackSocket;
+        private SocketBase disquuunDataStack;
 
-        private object lockObject = new object();
+        private object poolLock = new object();
 
-        public DisquuunSocketPool(int connectionCount, Action<DisquuunSocket, string> OnSocketOpened, Action<DisquuunSocket, string, Exception> OnSocketConnectionFailed)
+        public DisquuunSocketPool(int defaultConnectionCount, Action<DisquuunSocket, int> OnSocketOpened, Action<DisquuunSocket, string, Exception> OnSocketConnectionFailed)
         {
-            this.stackSocket = new SocketBase();
-            this.sockets = new DisquuunSocket[connectionCount];
+            this.disquuunDataStack = new SocketBase();
+
+            this.sockets = new DisquuunSocket[defaultConnectionCount];
             for (var i = 0; i < sockets.Length; i++)
             {
-                this.sockets[i] = new DisquuunSocket(OnSocketOpened, this.OnReloaded, OnSocketConnectionFailed);
+                this.sockets[i] = new DisquuunSocket(i, OnSocketOpened, this.OnReloaded, OnSocketConnectionFailed);
             }
         }
 
@@ -32,7 +35,7 @@ namespace DisquuunCore
 
         public void Disconnect()
         {
-            lock (lockObject)
+            lock (poolLock)
             {
                 for (var i = 0; i < sockets.Length; i++)
                 {
@@ -44,35 +47,35 @@ namespace DisquuunCore
 
         public SocketBase ChooseAvailableSocket()
         {
-            lock (lockObject)
+            lock (poolLock)
             {
                 for (var i = 0; i < sockets.Length; i++)
                 {
                     var socket = sockets[i];
 
-                    if (socket.IsChoosable())
+                    if (socket.IsAvailable())
                     {
                         socket.SetBusy();
                         return socket;
                     }
                 }
 
-                DisquuunLogger.Log("stacked.");
-                return stackSocket;
+                // DisquuunLogger.Log("stacked. " + disquuunDataStack.QueueCount());
+                return disquuunDataStack;
             }
         }
 
         public void OnReloaded(DisquuunSocket reloadedSocket)
         {
-            lock (lockObject)
+            lock (poolLock)
             {
-                if (stackSocket.IsQueued())
+                if (disquuunDataStack.IsQueued())
                 {
-                    if (reloadedSocket.IsChoosable())
+                    if (reloadedSocket.IsAvailable())
                     {
                         reloadedSocket.SetBusy();
 
-                        var commandAndData = stackSocket.Dequeue();
+                        var commandAndData = disquuunDataStack.Dequeue();
                         switch (commandAndData.executeType)
                         {
                             case DisquuunExecuteType.ASYNC:
@@ -98,7 +101,7 @@ namespace DisquuunCore
 
         public int AvailableSocketNum()
         {
-            lock (lockObject)
+            lock (poolLock)
             {
                 var availableSocketCount = 0;
                 for (var i = 0; i < sockets.Length; i++)
@@ -106,9 +109,10 @@ namespace DisquuunCore
                     var socket = sockets[i];
                     if (socket == null)
                     {
+                        // not yet generated.
                         continue;
                     }
-                    if (socket.IsChoosable())
+                    if (socket.IsAvailable())
                     {
                         availableSocketCount++;
                     }
@@ -119,9 +123,9 @@ namespace DisquuunCore
 
         public int StackedCommandCount()
         {
-            lock (lockObject)
+            lock (poolLock)
             {
-                return stackSocket.QueueCount();
+                return disquuunDataStack.QueueCount();
             }
         }
     }

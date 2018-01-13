@@ -13,7 +13,47 @@ namespace DisquuunTest
     {
         static void Main(string[] args)
         {
-            // BenchmarkRunner.Run<DisquuunBench>();
+            BenchmarkRunner.Run<DisquuunBench2>();
+            return;
+            Disquuun disquuun = null;
+            var sampleQueueName = Guid.NewGuid().ToString();
+            var n = 10000;
+
+            var waitHandles = new ManualResetEvent[n];
+            for (var i = 0; i < n; i++)
+            {
+                waitHandles[i] = new ManualResetEvent(false);
+            }
+            disquuun = new Disquuun(
+                "127.0.0.1", 7711, 1024, 10, id =>
+                {
+                    for (var i = 0; i < n; i++)
+                    {
+                        var index = i;
+                        disquuun.AddJob(sampleQueueName, new byte[100]).Async(
+                            (command, data) =>
+                            {
+                                // Console.WriteLine("a:" + index);
+                                waitHandles[index].Set();
+                            }
+                        );
+                    }
+                }
+            );
+
+            for (var i = 0; i < n; i++)
+            {
+                waitHandles[i].WaitOne(Timeout.Infinite);
+            }
+        }
+    }
+
+    [ShortRunJob]
+    public class DisquuunBench2
+    {
+        [Benchmark]
+        public void Bench()
+        {
             Disquuun disquuun = null;
             var sampleQueueName = Guid.NewGuid().ToString();
             var n = 10;
@@ -24,22 +64,27 @@ namespace DisquuunTest
                 waitHandles[i] = new ManualResetEvent(false);
             }
             disquuun = new Disquuun(
-                "127.0.0.1", 7711, 1024, 1, id =>
+                "127.0.0.1", 7711, 1024, 10, id =>
                 {
                     for (var i = 0; i < n; i++)
                     {
+                        var index = i;
                         disquuun.AddJob(sampleQueueName, new byte[100]).Async(
                             (command, data) =>
                             {
-                                Console.WriteLine("a:" + i);
-                                waitHandles[i].Set();
+                                DisquuunLogger.Log("i:" + index);
+                                waitHandles[index].Set();
                             }
                         );
                     }
                 }
             );
 
-            waitHandles[n - 1].WaitOne(Timeout.Infinite);
+            for (var i = 0; i < n; i++)
+            {
+                waitHandles[i].WaitOne(Timeout.Infinite);
+            }
+            DisquuunLogger.Log("done", true);
         }
     }
 

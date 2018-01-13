@@ -11,3 +11,5 @@ nodes.conf
 
 test.log
 BenchmarkDotNet.Artifacts/DisquuunBench.log
+log
+BenchmarkDotNet.Artifacts/DisquuunBench2.log

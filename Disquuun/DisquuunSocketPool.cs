@@ -57,7 +57,7 @@ namespace DisquuunCore
                     }
                 }
 
-                Console.WriteLine("socket shortage. sockets.Length:" + sockets.Length);
+                DisquuunLogger.Log("stacked.");
                 return stackSocket;
             }
         }
@@ -66,7 +66,7 @@ namespace DisquuunCore
         {
             lock (lockObject)
             {
-                if (stackSocket.IsQueued())// ここを緩和すると良さそうな気がする。
+                if (stackSocket.IsQueued())
                 {
                     if (reloadedSocket.IsChoosable())
                     {

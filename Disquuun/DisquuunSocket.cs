@@ -23,6 +23,7 @@ namespace DisquuunCore
         {
             if (socketToken == null)
             {
+                DisquuunLogger.Log("IsChoosable socketToken is null.");
                 return false;
             }
 
@@ -251,44 +252,55 @@ namespace DisquuunCore
 
         private void StartReceiveAndSendDataAsync(DisqueCommand[] commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
-            // ready for receive.
-            socketToken.readableDataLength = 0;
-
-            socketToken.receiveArgs.SetBuffer(socketToken.receiveBuffer, 0, socketToken.receiveBuffer.Length);
-            if (!socketToken.socket.ReceiveAsync(socketToken.receiveArgs))
-            {
-                OnReceived(socketToken.socket, socketToken.receiveArgs);
-            }
-
-            // if multiple commands exist, set as pipeline.
-            socketToken.isPipeline = false;
-            if (1 < commands.Length)
-            {
-                socketToken.isPipeline = true;
-                pipelineIndex = 0;
-            }
-
-            socketToken.currentCommands = commands;
-            socketToken.currentSendingBytes = data;
-            socketToken.AsyncCallback = Callback;
-
             try
             {
-                socketToken.sendArgs.SetBuffer(data, 0, data.Length);
+                // ready for receive.
+                socketToken.readableDataLength = 0;
+
+                socketToken.receiveArgs.SetBuffer(socketToken.receiveBuffer, 0, socketToken.receiveBuffer.Length);
+                if (!socketToken.socket.ReceiveAsync(socketToken.receiveArgs))
+                {
+                    OnReceived(socketToken.socket, socketToken.receiveArgs);
+                }
+
+                // if multiple commands exist, set as pipeline.
+                socketToken.isPipeline = false;
+                if (1 < commands.Length)
+                {
+                    socketToken.isPipeline = true;
+                    pipelineIndex = 0;
+                }
+
+                socketToken.currentCommands = commands;
+                socketToken.currentSendingBytes = data;
+                socketToken.AsyncCallback = Callback;
+
+                try
+                {
+                    socketToken.sendArgs.SetBuffer(data, 0, data.Length);
+                }
+                catch (Exception e)
+                {
+                    DisquuunLogger.Log("error on StartReceiveAndSendDataAsync. state:" + socketToken.socketState + " error:" + e);
+                    // renew. potential error is exists and should avoid this error.
+                    var sendArgs = new SocketAsyncEventArgs();
+                    sendArgs.RemoteEndPoint = socketToken.receiveArgs.RemoteEndPoint;
+                    sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
+                    sendArgs.UserToken = socketToken;
+
+                    socketToken.sendArgs = sendArgs;
+                    socketToken.sendArgs.SetBuffer(data, 0, data.Length);
+                }
+
+                if (!socketToken.socket.SendAsync(socketToken.sendArgs))
+                {
+                    OnSend(socketToken.socket, socketToken.sendArgs);
+                }
             }
-            catch
+            catch (Exception e)
             {
-                // renew. potential error is exists and should avoid this error.
-                var sendArgs = new SocketAsyncEventArgs();
-                sendArgs.RemoteEndPoint = socketToken.receiveArgs.RemoteEndPoint;
-                sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
-                sendArgs.UserToken = socketToken;
-
-                socketToken.sendArgs = sendArgs;
-                socketToken.sendArgs.SetBuffer(data, 0, data.Length);
+                DisquuunLogger.Log("error on StartReceiveAndSendDataAsync:" + e);
             }
-
-            if (!socketToken.socket.SendAsync(socketToken.sendArgs)) OnSend(socketToken.socket, socketToken.sendArgs);
         }
 
 
@@ -307,6 +319,7 @@ namespace DisquuunCore
                             token.socketState = SocketState.CLOSED;
                             var error = new Exception("connect error:" + args.SocketError.ToString());
 
+                            DisquuunLogger.Log("error on OnConnect1. state:" + token.socketState + " error:" + error);
                             SocketClosed(this, "connect failed.", error);
                             return;
                         }
@@ -317,6 +330,7 @@ namespace DisquuunCore
                     }
                 default:
                     {
+                        DisquuunLogger.Log("error on OnConnect2. state:" + token.socketState);
                         throw new Exception("socket state does not correct:" + token.socketState);
                     }
             }
@@ -350,8 +364,10 @@ namespace DisquuunCore
                                         {
                                             token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
                                         }
-                                        catch
+                                        catch (Exception e)
                                         {
+
+                                            DisquuunLogger.Log("error on OnSend. state:" + token.socketState + " error:" + e);
                                             // renew. potential error is exists and should avoid this error.
                                             var sendArgs = new SocketAsyncEventArgs();
                                             sendArgs.RemoteEndPoint = token.receiveArgs.RemoteEndPoint;

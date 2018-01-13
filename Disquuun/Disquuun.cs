@@ -413,14 +413,16 @@ namespace DisquuunCore
         {
             // TestLogger.Log(message, write);
             // Console.WriteLine("log:" + message);
-            // builder.Append(header + message);
-            // if (write)
-            // {
-            using (var sw = new StreamWriter("log", true))
+
+            builder.AppendLine(header + message);
+
+            if (write)
             {
-                sw.WriteLine(header + message);
+                using (var sw = new StreamWriter("/Users/passepied/Desktop/Disquuun/log", true))
+                {
+                    sw.WriteLine(builder.ToString());
+                }
             }
-            // }
         }
     }
 }

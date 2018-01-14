@@ -131,7 +131,7 @@ public partial class Tests
 
             // benchmarks.
             tests.Add(_7_0_AddJob1000);
-            tests.Add(_7_0_0_AddJob1000by100Connectoion);
+            tests.Add(_7_0_0_AddJob1000by100Connection);
             tests.Add(_7_0_1_AddJob1000byPipeline);
             tests.Add(_7_0_2_AddJob1000byPipelines);
             tests.Add(_7_1_GetJob1000);
@@ -281,7 +281,7 @@ public partial class Tests
 
                         if (timeoutSec < distanceSeconds)
                         {
-                            TestLogger.Log("timeout:" + methodName);
+                            TestLogger.Log("timeout:" + methodName + " time limit sec:" + timeoutSec + " is overed.", true);
                             succeeded = false;
                             break;
                         }

@@ -10,6 +10,8 @@ using DisquuunCore.Deserialize;
 
 public partial class Tests
 {
+    private byte[] data_10 = new byte[10];
+    private byte[] data_100 = new byte[100];
     public void _0_0_InitWith2Connection(Disquuun disquuun)
     {
         WaitUntil("_0_0_InitWith2Connection", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
@@ -42,7 +44,7 @@ public partial class Tests
                 var queueId = Guid.NewGuid().ToString();
 
                 // addjob. add 10bytes job to Disque.
-                disquuun.AddJob(queueId, new byte[10]).DEPRICATED_Sync();
+                disquuun.AddJob(queueId, data_10).DEPRICATED_Sync();
 
                 // getjob. get job from Disque.
                 var result = disquuun.GetJob(new string[] { queueId }).DEPRICATED_Sync();
@@ -73,7 +75,7 @@ public partial class Tests
                 var queueId = Guid.NewGuid().ToString();
 
                 // addjob. add 10bytes job to Disque.
-                disquuun.AddJob(queueId, new byte[10]).Async(
+                disquuun.AddJob(queueId, data_10).Async(
                     (addJobCommand, addJobData) =>
                     {
                         // job added to queueId @ Disque.
@@ -119,7 +121,7 @@ public partial class Tests
         var fastacked = false;
 
         disquuun.Pipeline(
-            disquuun.AddJob("my queue name", new byte[100]),
+            disquuun.AddJob("my queue name", data_100),
             disquuun.GetJob(new string[] { "my queue name" })
         ).Execute(
             (command, data) =>

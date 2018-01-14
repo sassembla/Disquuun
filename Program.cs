@@ -13,8 +13,8 @@ namespace DisquuunTest
     {
         static void Main(string[] args)
         {
-            // BenchmarkRunner.Run<DisquuunBench>();
-            DisquuunTests.Start();
+            BenchmarkRunner.Run<DisquuunBench>();
+            // DisquuunTests.Start();
         }
     }
 

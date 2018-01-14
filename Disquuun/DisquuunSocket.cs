@@ -139,7 +139,18 @@ namespace DisquuunCore
 
         private void StartConnectAsync(Socket clientSocket, SocketAsyncEventArgs connectArgs)
         {
-            if (!clientSocket.ConnectAsync(socketToken.connectArgs)) OnConnect(clientSocket, connectArgs);
+#if LOGIC_BENCH
+            {
+                socketToken.socketState = SocketState.OPENED;
+                SocketOpened(this, socketIndex);
+                return;
+            }
+#endif
+
+            if (!clientSocket.ConnectAsync(socketToken.connectArgs))
+            {
+                OnConnect(clientSocket, connectArgs);
+            }
         }
 
         /*
@@ -152,9 +163,14 @@ namespace DisquuunCore
 		*/
         public override DisquuunResult[] DEPRECATED_Sync(DisqueCommand command, byte[] data)
         {
+#if LOGIC_BENCH
+            {
+                socketToken.socketState = SocketState.OPENED;
+                return new DisquuunResult[0];
+            }
+#endif
             try
             {
-
                 socketToken.socket.Send(data);
 
                 var currentLength = 0;
@@ -247,59 +263,97 @@ namespace DisquuunCore
 
         private void StartReceiveAndSendDataAsync(DisqueCommand[] commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
-            try
+#if LOGIC_BENCH
             {
-                // ready for receive.
-                socketToken.readableDataLength = 0;
+                socketToken.currentCommands = commands;
+                socketToken.currentSendingBytes = data;
+                socketToken.AsyncCallback = Callback;
 
-                socketToken.receiveArgs.SetBuffer(socketToken.receiveBuffer, 0, socketToken.receiveBuffer.Length);
-                if (!socketToken.socket.ReceiveAsync(socketToken.receiveArgs))
-                {
-                    OnReceived(socketToken.socket, socketToken.receiveArgs);
-                }
-
-                // if multiple commands exist, set as pipeline.
                 socketToken.isPipeline = false;
                 if (1 < commands.Length)
                 {
                     socketToken.isPipeline = true;
                     pipelineIndex = 0;
+
+                    // -> PipelineReceive(token);
+                    {
+                        foreach (var command in commands)
+                        {
+                            var result = new DisquuunResult[0];
+                            socketToken.AsyncCallback(command, result);
+                        }
+                        socketToken.socketState = SocketState.OPENED;
+                        SocketReloaded(this);
+                    }
                 }
-
-                socketToken.currentCommands = commands;
-                socketToken.currentSendingBytes = data;
-                socketToken.AsyncCallback = Callback;
-
-                try
+                else
                 {
-                    socketToken.sendArgs.SetBuffer(data, 0, data.Length);
+                    // OnSend -> token.socketState = SocketState.SENDED;
+                    // receive -> LoopOrAsyncReceive(token);
+                    {
+                        var result = new DisquuunResult[0];
+                        socketToken.continuation = socketToken.AsyncCallback(commands[0], result);
+                        if (socketToken.continuation)
+                        {
+                            // LoopOrAsyncReceive // 無限ループする。
+                        }
+                        else
+                        {
+                            socketToken.socketState = SocketState.OPENED;
+                            SocketReloaded(this);
+                        }
+                    }
                 }
-                catch
-                {
-                    // renew. potential error is exists and should avoid this error.
-                    var sendArgs = new SocketAsyncEventArgs();
-                    sendArgs.RemoteEndPoint = socketToken.receiveArgs.RemoteEndPoint;
-                    sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
-                    sendArgs.UserToken = socketToken;
+                return;
+            }
+#endif
 
-                    socketToken.sendArgs = sendArgs;
-                    socketToken.sendArgs.SetBuffer(data, 0, data.Length);
-                }
+            // ready for receive.
+            socketToken.readableDataLength = 0;
 
-                if (!socketToken.socket.SendAsync(socketToken.sendArgs))
-                {
-                    OnSend(socketToken.socket, socketToken.sendArgs);
-                }
+            socketToken.receiveArgs.SetBuffer(socketToken.receiveBuffer, 0, socketToken.receiveBuffer.Length);
+            if (!socketToken.socket.ReceiveAsync(socketToken.receiveArgs))
+            {
+                OnReceived(socketToken.socket, socketToken.receiveArgs);
+            }
+
+            // if multiple commands exist, set as pipeline.
+            socketToken.isPipeline = false;
+            if (1 < commands.Length)
+            {
+                socketToken.isPipeline = true;
+                pipelineIndex = 0;
+            }
+
+            socketToken.currentCommands = commands;
+            socketToken.currentSendingBytes = data;
+            socketToken.AsyncCallback = Callback;
+
+            try
+            {
+                socketToken.sendArgs.SetBuffer(data, 0, data.Length);
             }
             catch
             {
+                // renew. potential error is exists and should avoid this error.
+                var sendArgs = new SocketAsyncEventArgs();
+                sendArgs.RemoteEndPoint = socketToken.receiveArgs.RemoteEndPoint;
+                sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSend);
+                sendArgs.UserToken = socketToken;
 
+                socketToken.sendArgs = sendArgs;
+                socketToken.sendArgs.SetBuffer(data, 0, data.Length);
+            }
+
+            if (!socketToken.socket.SendAsync(socketToken.sendArgs))
+            {
+                OnSend(socketToken.socket, socketToken.sendArgs);
             }
         }
 
 
         /*
-            handlers
+            socket handlers
         */
         private void OnConnect(object unused, SocketAsyncEventArgs args)
         {
@@ -351,7 +405,10 @@ namespace DisquuunCore
                                         // ready for next loop receive.
                                         token.readableDataLength = 0;
                                         token.receiveArgs.SetBuffer(token.receiveBuffer, 0, token.receiveBuffer.Length);
-                                        if (!token.socket.ReceiveAsync(token.receiveArgs)) OnReceived(token.socket, token.receiveArgs);
+                                        if (!token.socket.ReceiveAsync(token.receiveArgs))
+                                        {
+                                            OnReceived(token.socket, token.receiveArgs);
+                                        }
 
                                         try
                                         {
@@ -367,6 +424,7 @@ namespace DisquuunCore
                                             token.sendArgs = sendArgs;
                                             token.sendArgs.SetBuffer(token.currentSendingBytes, 0, token.currentSendingBytes.Length);
                                         }
+
                                         if (!token.socket.SendAsync(token.sendArgs))
                                         {
                                             OnSend(token.socket, token.sendArgs);
@@ -535,7 +593,10 @@ namespace DisquuunCore
                                 // ready for next loop receive.
                                 token.readableDataLength = 0;
                                 token.receiveArgs.SetBuffer(token.receiveBuffer, 0, token.receiveBuffer.Length);
-                                if (!token.socket.ReceiveAsync(token.receiveArgs)) OnReceived(token.socket, token.receiveArgs);
+                                if (!token.socket.ReceiveAsync(token.receiveArgs))
+                                {
+                                    OnReceived(token.socket, token.receiveArgs);
+                                }
 
                                 try
                                 {
@@ -644,7 +705,10 @@ namespace DisquuunCore
             // and of cource this SetBuffer is for setting receivableCount.
             token.receiveArgs.SetBuffer(token.receiveBuffer, receiveAfterFragmentIndex, receivableCount);
 
-            if (!token.socket.ReceiveAsync(token.receiveArgs)) OnReceived(token.socket, token.receiveArgs);
+            if (!token.socket.ReceiveAsync(token.receiveArgs))
+            {
+                OnReceived(token.socket, token.receiveArgs);
+            }
         }
 
         public void Disconnect()

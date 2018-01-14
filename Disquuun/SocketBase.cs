@@ -9,6 +9,11 @@ namespace DisquuunCore
     {
         private ConcurrentQueue<StackCommandData> stackedDataQueue;
 
+        public void ReadyStack()
+        {
+            this.stackedDataQueue = new ConcurrentQueue<StackCommandData>();
+        }
+
         public int QueueCount()
         {
             return stackedDataQueue.Count;
@@ -27,11 +32,6 @@ namespace DisquuunCore
             StackCommandData data;
             stackedDataQueue.TryDequeue(out data);
             return data;
-        }
-
-        public SocketBase()
-        {
-            this.stackedDataQueue = new ConcurrentQueue<StackCommandData>();
         }
 
         public virtual DisquuunResult[] DEPRECATED_Sync(DisqueCommand command, byte[] data)

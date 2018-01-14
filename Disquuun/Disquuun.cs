@@ -175,7 +175,7 @@ namespace DisquuunCore
         private void OnSocketConnectionFailed(DisquuunSocket source, string info, Exception e)
         {
             connectionState = ConnectionState.OPENED_RECOVERING;
-            DisquuunLogger.Log("OnSocketConnectionFailedで、失敗原因はなんだかわからないが動作を継続する必要がありそう。info:" + info + " error:" + e);
+            DisquuunLogger.Log("OnSocketConnectionFailedで、失敗原因にかんれんして、可能であれば動作を継続する必要がありそう。info:" + info + " error:" + e);
 
             if (ConnectionFailed != null)
             {

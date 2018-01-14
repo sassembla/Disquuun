@@ -17,6 +17,7 @@ namespace DisquuunCore
         public DisquuunSocketPool(int defaultConnectionCount, Action<DisquuunSocket, int> OnSocketOpened, Action<DisquuunSocket, string, Exception> OnSocketConnectionFailed)
         {
             this.disquuunDataStack = new SocketBase();
+            disquuunDataStack.ReadyStack();
 
             this.sockets = new Hashtable();
             for (var i = 0; i < defaultConnectionCount; i++)

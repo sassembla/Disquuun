@@ -1,45 +1,37 @@
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace DisquuunCore
 {
     public class SocketBase
     {
-        private object stackLockObject = new object();
-
-        private Queue<StackCommandData> stackedDataQueue;
+        private ConcurrentQueue<StackCommandData> stackedDataQueue;
 
         public int QueueCount()
         {
-            lock (stackLockObject)
-            {
-                return stackedDataQueue.Count;
-            }
+            return stackedDataQueue.Count;
         }
 
         public bool IsQueued()
         {
-            lock (stackLockObject)
+            if (0 < stackedDataQueue.Count)
             {
-                if (0 < stackedDataQueue.Count)
-                {
-                    return true;
-                }
-                return false;
+                return true;
             }
+            return false;
         }
         public StackCommandData Dequeue()
         {
-            lock (stackLockObject)
-            {
-                return stackedDataQueue.Dequeue();
-            }
+            StackCommandData data;
+            stackedDataQueue.TryDequeue(out data);
+            return data;
         }
 
         public SocketBase()
         {
-            this.stackedDataQueue = new Queue<StackCommandData>();
+            this.stackedDataQueue = new ConcurrentQueue<StackCommandData>();
         }
 
         public virtual DisquuunResult[] DEPRECATED_Sync(DisqueCommand command, byte[] data)
@@ -49,26 +41,17 @@ namespace DisquuunCore
 
         public virtual void Async(DisqueCommand[] commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
-            lock (stackLockObject)
-            {
-                this.stackedDataQueue.Enqueue(new StackCommandData(DisquuunExecuteType.ASYNC, commands, data, Callback));
-            }
+            this.stackedDataQueue.Enqueue(new StackCommandData(DisquuunExecuteType.ASYNC, commands, data, Callback));
         }
 
         public virtual void Loop(DisqueCommand[] commands, byte[] data, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
-            lock (stackLockObject)
-            {
-                this.stackedDataQueue.Enqueue(new StackCommandData(DisquuunExecuteType.LOOP, commands, data, Callback));
-            }
+            this.stackedDataQueue.Enqueue(new StackCommandData(DisquuunExecuteType.LOOP, commands, data, Callback));
         }
 
         public virtual void Execute(DisqueCommand[] commands, byte[] wholeData, Func<DisqueCommand, DisquuunResult[], bool> Callback)
         {
-            lock (stackLockObject)
-            {
-                this.stackedDataQueue.Enqueue(new StackCommandData(DisquuunExecuteType.PIPELINE, commands, wholeData, Callback));
-            }
+            this.stackedDataQueue.Enqueue(new StackCommandData(DisquuunExecuteType.PIPELINE, commands, wholeData, Callback));
         }
     }
 }

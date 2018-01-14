@@ -8,7 +8,7 @@ namespace DisquuunCore
 {
     public class DisquuunSocketPool
     {
-        private DisquuunSocket[] sockets;// ここを可変式にすべき
+        private DisquuunSocket[] sockets;
 
         private SocketBase disquuunDataStack;
 
@@ -60,7 +60,7 @@ namespace DisquuunCore
                     }
                 }
 
-                // DisquuunLogger.Log("stacked. " + disquuunDataStack.QueueCount());
+                // no queue available, stack.
                 return disquuunDataStack;
             }
         }

@@ -199,8 +199,14 @@ public partial class Tests
                     var result = DisquuunDeserializer.Info(info);
                     var restJobCount = result.jobs.registered_jobs;
 
-                    if (restJobCount != 0) TestLogger.Log("test:" + methodName + " rest job:" + restJobCount, true);
-                    else TestLogger.Log("test:" + methodName + " passed. no job exists.", true);
+                    if (restJobCount != 0)
+                    {
+                        TestLogger.Log("test:" + methodName + " rest job:" + restJobCount, true);
+                    }
+                    else
+                    {
+                        TestLogger.Log("test:" + methodName + " passed.", true);
+                    }
                 }
                 catch (Exception e)
                 {

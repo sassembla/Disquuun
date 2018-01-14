@@ -274,7 +274,7 @@ namespace DisquuunCore
                 {
                     socketToken.sendArgs.SetBuffer(data, 0, data.Length);
                 }
-                catch (Exception e)
+                catch
                 {
                     // renew. potential error is exists and should avoid this error.
                     var sendArgs = new SocketAsyncEventArgs();

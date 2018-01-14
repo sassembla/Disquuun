@@ -8,7 +8,7 @@ namespace DisquuunCore
 {
     public class DisquuunSocketPool
     {
-        private DisquuunSocket[] sockets;
+        private Hashtable sockets;
 
         private SocketBase disquuunDataStack;
 
@@ -18,18 +18,18 @@ namespace DisquuunCore
         {
             this.disquuunDataStack = new SocketBase();
 
-            this.sockets = new DisquuunSocket[defaultConnectionCount];
-            for (var i = 0; i < sockets.Length; i++)
+            this.sockets = new Hashtable();
+            for (var i = 0; i < defaultConnectionCount; i++)
             {
-                this.sockets[i] = new DisquuunSocket(i, OnSocketOpened, this.OnReloaded, OnSocketConnectionFailed);
+                this.sockets.Add(i, new DisquuunSocket(i, OnSocketOpened, this.OnReloaded, OnSocketConnectionFailed));
             }
         }
 
         public void Connect(IPEndPoint endPoint, long bufferSize)
         {
-            for (var i = 0; i < sockets.Length; i++)
+            for (var i = 0; i < sockets.Count; i++)
             {
-                this.sockets[i].Connect(endPoint, bufferSize);
+                ((DisquuunSocket)this.sockets[i]).Connect(endPoint, bufferSize);
             }
         }
 
@@ -37,9 +37,9 @@ namespace DisquuunCore
         {
             lock (poolLock)
             {
-                for (var i = 0; i < sockets.Length; i++)
+                for (var i = 0; i < sockets.Count; i++)
                 {
-                    var socket = sockets[i];
+                    var socket = (DisquuunSocket)sockets[i];
                     socket.Disconnect();
                 }
             }
@@ -49,9 +49,9 @@ namespace DisquuunCore
         {
             lock (poolLock)
             {
-                for (var i = 0; i < sockets.Length; i++)
+                for (var i = 0; i < sockets.Count; i++)
                 {
-                    var socket = sockets[i];
+                    var socket = (DisquuunSocket)sockets[i];
 
                     if (socket.IsAvailable())
                     {
@@ -104,9 +104,9 @@ namespace DisquuunCore
             lock (poolLock)
             {
                 var availableSocketCount = 0;
-                for (var i = 0; i < sockets.Length; i++)
+                for (var i = 0; i < sockets.Count; i++)
                 {
-                    var socket = sockets[i];
+                    var socket = (DisquuunSocket)sockets[i];
                     if (socket == null)
                     {
                         // not yet generated.

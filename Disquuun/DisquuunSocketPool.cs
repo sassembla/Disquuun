@@ -68,6 +68,7 @@ namespace DisquuunCore
 
         public void OnReloaded(DisquuunSocket reloadedSocket)
         {
+            // consume stacked command if need.
             lock (poolLock)
             {
                 if (disquuunDataStack.IsQueued())

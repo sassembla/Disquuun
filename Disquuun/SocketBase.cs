@@ -27,6 +27,7 @@ namespace DisquuunCore
             }
             return false;
         }
+
         public StackCommandData Dequeue()
         {
             StackCommandData data;

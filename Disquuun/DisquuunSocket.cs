@@ -289,19 +289,9 @@ namespace DisquuunCore
                 else
                 {
                     // OnSend -> token.socketState = SocketState.SENDED;
-                    // receive -> LoopOrAsyncReceive(token);
+                    // receive -> Bench_LoopOrAsyncReceive(token);
                     {
-                        var result = new DisquuunResult[0];
-                        socketToken.continuation = socketToken.AsyncCallback(commands[0], result);
-                        if (socketToken.continuation)
-                        {
-                            // LoopOrAsyncReceive // 無限ループする。
-                        }
-                        else
-                        {
-                            socketToken.socketState = SocketState.OPENED;
-                            SocketReloaded(this);
-                        }
+                        Bench_LoopOrAsyncReceive(commands[0]);
                     }
                 }
                 return;
@@ -351,6 +341,26 @@ namespace DisquuunCore
             }
         }
 
+#if LOGIC_BENCH
+        private void Bench_LoopOrAsyncReceive(DisqueCommand command)
+        {
+            // ここで、コマンドの結果内容を精査する場合、結果を生成する必要があるが、どうするかな、、
+            var result = new DisquuunResult[0];
+            socketToken.continuation = socketToken.AsyncCallback(command, result);
+            if (socketToken.continuation)
+            {
+                System.Threading.Tasks.Task.Run(() =>
+                {
+                    Bench_LoopOrAsyncReceive(command);
+                });
+            }
+            else
+            {
+                socketToken.socketState = SocketState.OPENED;
+                SocketReloaded(this);
+            }
+        }
+#endif
 
         /*
             socket handlers
@@ -750,7 +760,7 @@ namespace DisquuunCore
 
     /**
         extension definition for DisquuunSocket.
-	*/
+*/
     public static class DisquuunExtension
     {
         public static DisquuunResult[] DEPRICATED_Sync(this DisquuunInput input)

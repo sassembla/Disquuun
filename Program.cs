@@ -13,8 +13,12 @@ namespace DisquuunTest
     {
         static void Main(string[] args)
         {
+#if LOGIC_BENCH
             BenchmarkRunner.Run<DisquuunBench>();
-            // DisquuunTests.Start();
+            return;
+#endif
+
+            DisquuunTests.Start();
         }
     }
 
@@ -295,6 +299,67 @@ namespace DisquuunTest
             {
                 waitHandle.Set();
             });
+            waitHandle.WaitOne(Timeout.Infinite);
+        }
+
+        // loop, 10 item
+        [Benchmark]
+        public void Take_10byte_2sock_loop_2()
+        {
+            var waitHandle = new ManualResetEvent(false);
+            var i = 0;
+            disquuun2.AddJob(qName, dataBytes1).Loop(
+                (command, datas) =>
+                {
+                    if (i == 2)
+                    {
+                        waitHandle.Set();
+                        return false;
+                    }
+                    i++;
+                    return true;
+                }
+            );
+            waitHandle.WaitOne(Timeout.Infinite);
+        }
+
+        [Benchmark]
+        public void Take_10byte_10sock_loop_2()
+        {
+            var waitHandle = new ManualResetEvent(false);
+            var i = 0;
+            disquuun10.AddJob(qName, dataBytes1).Loop(
+                (command, datas) =>
+                {
+                    if (i == 2)
+                    {
+                        waitHandle.Set();
+                        return false;
+                    }
+                    i++;
+                    return true;
+                }
+            );
+            waitHandle.WaitOne(Timeout.Infinite);
+        }
+
+        [Benchmark]
+        public void Take_10byte_30sock_loop_2()
+        {
+            var waitHandle = new ManualResetEvent(false);
+            var i = 0;
+            disquuun30.AddJob(qName, dataBytes1).Loop(
+                (command, datas) =>
+                {
+                    if (i == 2)
+                    {
+                        waitHandle.Set();
+                        return false;
+                    }
+                    i++;
+                    return true;
+                }
+            );
             waitHandle.WaitOne(Timeout.Infinite);
         }
     }

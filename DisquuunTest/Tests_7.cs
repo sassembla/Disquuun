@@ -11,7 +11,7 @@ using DisquuunCore.Deserialize;
 
 public partial class Tests
 {
-    private int loadLevel = 100;
+    const int ratio = 100;
 
     private object _7_0_AddJob1000LockObject = new object();
 
@@ -19,7 +19,8 @@ public partial class Tests
     {
         WaitUntil("_7_0_AddJob1000", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
-        var count = 1000 * loadLevel;
+        var count = 1000 * ratio;
+        TestLogger.Log("_7_0_AddJob1000 ratio:" + count);
 
         var connectedCount = 0;
         disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
@@ -87,10 +88,11 @@ public partial class Tests
     {
         WaitUntil("_7_0_0_AddJob1000by100Connection", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
-        var count = 1000 * loadLevel;
+        var count = 1000 * ratio;
+        TestLogger.Log("_7_0_0_AddJob1000by100Connection ratio:" + count);
 
         var connectedCount = 0;
-        disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 100,
+        disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
             disquuunId =>
             {
                 connectedCount++;
@@ -152,10 +154,11 @@ public partial class Tests
     {
         WaitUntil("_7_0_1_AddJob1000byPipeline", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
-        var count = 1000 * loadLevel;
+        var count = 1000 * ratio;
+        TestLogger.Log("_7_0_1_AddJob1000byPipeline ratio:" + count);
 
         var connectedCount = 0;
-        disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 100,
+        disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
             disquuunId =>
             {
                 connectedCount++;
@@ -180,10 +183,14 @@ public partial class Tests
         {
             disquuun.Pipeline(disquuun.AddJob(queueId, data_10));
         }
+        TestLogger.Log("set done, " + w.ElapsedMilliseconds);
         disquuun.Pipeline().Execute(
             (command, data) =>
             {
-                lock (_7_0_1_AddJob1000byPipelineObject) addedCount++;
+                lock (_7_0_1_AddJob1000byPipelineObject)
+                {
+                    addedCount++;
+                }
             }
         );
 
@@ -221,10 +228,11 @@ public partial class Tests
     {
         WaitUntil("_7_0_2_AddJob1000byPipelines", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
-        var count = 1000 * loadLevel;
+        var count = 1000 * ratio;
+        TestLogger.Log("_7_0_2_AddJob1000byPipelines ratio:" + count);
 
         var connectedCount = 0;
-        disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 100,
+        disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
             disquuunId =>
             {
                 connectedCount++;
@@ -291,7 +299,8 @@ public partial class Tests
     {
         WaitUntil("_7_1_GetJob1000", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
-        var addingJobCount = 1000 * loadLevel;
+        var addingJobCount = 1000 * ratio;
+        TestLogger.Log("_7_1_GetJob1000 ratio:" + addingJobCount);
 
         var connected = false;
         disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
@@ -368,10 +377,11 @@ public partial class Tests
     {
         WaitUntil("_7_1_0_GetJob1000by100Connection", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
-        var addingJobCount = 1000 * loadLevel;
+        var addingJobCount = 1000 * ratio;
+        TestLogger.Log("_7_1_0_GetJob1000by100Connection ratio:" + addingJobCount);
 
         var connected = false;
-        disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 100,
+        disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
             disquuunId =>
             {
                 connected = true;
@@ -439,10 +449,11 @@ public partial class Tests
     {
         WaitUntil("_7_1_1_GetJob1000byPipeline", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
-        var addingJobCount = 1000 * loadLevel;
+        var addingJobCount = 1000 * ratio;
+        TestLogger.Log("_7_1_1_GetJob1000byPipeline ratio:" + addingJobCount);
 
         var connected = false;
-        disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 100,
+        disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
             disquuunId =>
             {
                 connected = true;
@@ -513,10 +524,11 @@ public partial class Tests
     {
         WaitUntil("_7_1_2_GetJob1000byPipelines", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
-        var addingJobCount = 1000 * loadLevel;
+        var addingJobCount = 1000 * ratio;
+        TestLogger.Log("_7_1_2_GetJob1000byPipelines ratio:" + addingJobCount);
 
         var connected = false;
-        disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 100,
+        disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
             disquuunId =>
             {
                 connected = true;
@@ -587,7 +599,9 @@ public partial class Tests
     {
         WaitUntil("_7_2_GetJob1000byLoop 0", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
-        var addingJobCount = 1000 * loadLevel;
+        var addingJobCount = 1000 * ratio;
+        TestLogger.Log("_7_2_GetJob1000byLoop ratio:" + addingJobCount);
+
         var queueId = Guid.NewGuid().ToString();
 
         var addedCount = 0;
@@ -652,7 +666,9 @@ public partial class Tests
     {
         WaitUntil("_7_2_0_GetJob1000byPipeline 0", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
-        var addingJobCount = 1000 * loadLevel;
+        var addingJobCount = 1000 * ratio;
+        TestLogger.Log("_7_2_0_GetJob1000byPipeline ratio:" + addingJobCount);
+
         var queueId = Guid.NewGuid().ToString();
 
         var addedCount = 0;

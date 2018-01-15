@@ -159,7 +159,7 @@ public partial class Tests
         {
             var disquuunForResultInfo = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 10240, 1);
             WaitUntil(
-                "testRunner:",
+                "_internal",
                 () => disquuunForResultInfo.State() == Disquuun.ConnectionState.OPENED,
                 5
             );
@@ -167,7 +167,7 @@ public partial class Tests
             var i = 0;
             foreach (var test in tests)
             {
-                var methodName = i.ToString() + "_" + test.GetType();
+                var methodName = i.ToString() + "_" + test.Method.Name;
 
                 i++;
 
@@ -182,7 +182,7 @@ public partial class Tests
 
                     // すべての接続ができるまで待つ
                     WaitUntil(
-                        "testRunner:",
+                        "_internal",
                         () => disquuun.State() == Disquuun.ConnectionState.OPENED,
                         5
                     );
@@ -262,7 +262,7 @@ public partial class Tests
         return true;
     }
 
-    public bool WaitUntil(string methodName, Func<bool> WaitFor, int timeoutSec)
+    public bool WaitUntil(string message, Func<bool> WaitFor, int timeoutSec, [System.Runtime.CompilerServices.CallerMemberName] string methodName = "")
     {
         var resetEvent = new ManualResetEvent(false);
         var succeeded = true;
@@ -281,7 +281,7 @@ public partial class Tests
 
                         if (timeoutSec < distanceSeconds)
                         {
-                            TestLogger.Log("timeout:" + methodName + " time limit sec:" + timeoutSec + " is overed.", true);
+                            TestLogger.Log("timeout:" + methodName + " message:" + message + " time limit sec:" + timeoutSec + " is overed.", true);
                             succeeded = false;
                             break;
                         }

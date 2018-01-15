@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using DisquuunCore;
 using DisquuunCore.Deserialize;
@@ -11,9 +12,12 @@ public partial class Tests
 {
     // all sync apis are deprecated.
 
-    public void _1_0_AddJob_Sync(Disquuun disquuun)
+    public long _1_0_AddJob_Sync(Disquuun disquuun)
     {
         WaitUntil("_1_0_AddJob_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var queueId = Guid.NewGuid().ToString();
         var result = disquuun.AddJob(queueId, data_10).DEPRICATED_Sync();
@@ -22,11 +26,16 @@ public partial class Tests
 
         // ack in.
         disquuun.FastAck(new string[] { jobId }).DEPRICATED_Sync();
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_0_1_AddJob_Sync_TimeToLive(Disquuun disquuun)
+    public long _1_0_1_AddJob_Sync_TimeToLive(Disquuun disquuun)
     {
         WaitUntil("_1_0_1_AddJob_Sync_TimeToLive", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var queueId = Guid.NewGuid().ToString();
         var result = disquuun.AddJob(queueId, data_10, 0, "TTL", 100).DEPRICATED_Sync();
@@ -35,11 +44,16 @@ public partial class Tests
 
         // ack in.
         disquuun.FastAck(new string[] { jobId }).DEPRICATED_Sync();
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_0_2_AddJob_Sync_TimeToLive_Wait_Dead(Disquuun disquuun)
+    public long _1_0_2_AddJob_Sync_TimeToLive_Wait_Dead(Disquuun disquuun)
     {
         WaitUntil("_1_0_2_AddJob_Sync_TimeToLive_Wait_Dead", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var queueId = Guid.NewGuid().ToString();
 
@@ -54,11 +68,16 @@ public partial class Tests
         // get queue len.
         var len = DisquuunDeserializer.Qlen(disquuun.Qlen(queueId).DEPRICATED_Sync());
         Assert("_1_0_2_AddJob_Sync_TimeToLive_Wait_Dead", len == 0, "not match, len:" + len);
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_0_3_AddJob_Sync_Retry(Disquuun disquuun)
+    public long _1_0_3_AddJob_Sync_Retry(Disquuun disquuun)
     {
         WaitUntil("_1_0_3_AddJob_Sync_Retry", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var queueId = Guid.NewGuid().ToString();
 
@@ -83,11 +102,16 @@ public partial class Tests
         // job is returned to queue by retry param.
 
         disquuun.FastAck(new string[] { jobId }).DEPRICATED_Sync();
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_0_4_AddJob_Sync_Retry_0_And_TTL_1Sec(Disquuun disquuun)
+    public long _1_0_4_AddJob_Sync_Retry_0_And_TTL_1Sec(Disquuun disquuun)
     {
         WaitUntil("_1_0_4_AddJob_Sync_Retry_0_And_TTL_1Sec", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var queueId = Guid.NewGuid().ToString();
 
@@ -115,11 +139,16 @@ public partial class Tests
         // and rest job is 0.
         var info = DisquuunDeserializer.Info(disquuun.Info().DEPRICATED_Sync());
         Assert("_1_0_4_AddJob_Sync_Retry_0_And_TTL_1Sec", info.jobs.registered_jobs == 0, "not match.");
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_1_GetJob_Sync(Disquuun disquuun)
+    public long _1_1_GetJob_Sync(Disquuun disquuun)
     {
         WaitUntil("_1_1_GetJob_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var queueId = Guid.NewGuid().ToString();
 
@@ -132,11 +161,16 @@ public partial class Tests
         // ack in.
         var jobId = jobDatas[0].jobId;
         disquuun.FastAck(new string[] { jobId }).DEPRICATED_Sync();
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_1_1_GetJobWithCount_Sync(Disquuun disquuun)
+    public long _1_1_1_GetJobWithCount_Sync(Disquuun disquuun)
     {
         WaitUntil("_1_1_1_GetJobWithCount_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var queueId = Guid.NewGuid().ToString();
 
@@ -150,11 +184,16 @@ public partial class Tests
         // ack in.
         var jobIds = jobDatas.Select(job => job.jobId).ToArray();
         disquuun.FastAck(jobIds).DEPRICATED_Sync();
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_1_2_GetJobFromMultiQueue_Sync(Disquuun disquuun)
+    public long _1_1_2_GetJobFromMultiQueue_Sync(Disquuun disquuun)
     {
         WaitUntil("_1_1_2_GetJobFromMultiQueue_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var queueId1 = Guid.NewGuid().ToString();
         disquuun.AddJob(queueId1, data_10).DEPRICATED_Sync();
@@ -169,22 +208,32 @@ public partial class Tests
         // ack in.
         var jobIds = jobDatas.Select(job => job.jobId).ToArray();
         disquuun.FastAck(jobIds).DEPRICATED_Sync();
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_1_3_GetJobWithNoHang_Sync(Disquuun disquuun)
+    public long _1_1_3_GetJobWithNoHang_Sync(Disquuun disquuun)
     {
         WaitUntil("_1_1_3_GetJobWithNoHang_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var queueId = Guid.NewGuid().ToString();
 
         var result = disquuun.GetJob(new string[] { queueId }, "NOHANG").DEPRICATED_Sync();
         var jobDatas = DisquuunDeserializer.GetJob(result);
         Assert("_1_1_3_GetJobWithNoHang_Sync", 0, jobDatas.Length, "not match.");
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_1_4_GetJobWithCounters_Sync(Disquuun disquuun)
+    public long _1_1_4_GetJobWithCounters_Sync(Disquuun disquuun)
     {
         WaitUntil("_1_1_4_GetJobWithCounters_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var queueId = Guid.NewGuid().ToString();
 
@@ -196,11 +245,16 @@ public partial class Tests
         Assert("_1_1_4_GetJobWithCounters_Sync", 0, ackCount, "not match.");
 
         disquuun.FastAck(new string[] { jobDatas[0].jobId }).DEPRICATED_Sync();
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_2_AckJob_Sync(Disquuun disquuun)
+    public long _1_2_AckJob_Sync(Disquuun disquuun)
     {
         WaitUntil("_1_2_AckJob_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var queueId = Guid.NewGuid().ToString();
         var jobId = DisquuunDeserializer.AddJob(
@@ -210,11 +264,16 @@ public partial class Tests
         var result = disquuun.AckJob(new string[] { jobId }).DEPRICATED_Sync();
         var ackCount = DisquuunDeserializer.AckJob(result);
         Assert("_1_2_AckJob_Sync", 1, ackCount, "not match.");
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_3_Fastack_Sync(Disquuun disquuun)
+    public long _1_3_Fastack_Sync(Disquuun disquuun)
     {
         WaitUntil("_1_3_Fastack_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var queueId = Guid.NewGuid().ToString();
         var jobId = DisquuunDeserializer.AddJob(
@@ -224,9 +283,11 @@ public partial class Tests
         var result = disquuun.FastAck(new string[] { jobId }).DEPRICATED_Sync();
         var ackCount = DisquuunDeserializer.FastAck(result);
         Assert("_1_3_Fastack_Sync", 1, ackCount, "not match.");
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_4_Working_Sync(Disquuun disquuun)
+    public long _1_4_Working_Sync(Disquuun disquuun)
     {
         DisquuunLogger.Log("_1_4_Working_Sync not yet applied");
 
@@ -243,9 +304,10 @@ public partial class Tests
         // var result = disquuun.FastAck(new string[]{jobId}).DEPRICATED_Sync();
         // var ackCount = DisquuunDeserializer.FastAck(result);
         // Assert("", 1, ackCount, "not match.");
+        return 0;
     }
 
-    public void _1_5_Nack_Sync(Disquuun disquuun)
+    public long _1_5_Nack_Sync(Disquuun disquuun)
     {
         DisquuunLogger.Log("_1_5_Nack_Sync not yet applied");
 
@@ -259,31 +321,45 @@ public partial class Tests
         // var result = disquuun.FastAck(new string[]{jobId}).DEPRICATED_Sync();
         // var ackCount = DisquuunDeserializer.FastAck(result);
         // Assert("", 1, ackCount, "not match.");
+        return 0;
     }
 
-    public void _1_6_Info_Sync(Disquuun disquuun)
+    public long _1_6_Info_Sync(Disquuun disquuun)
     {
         WaitUntil("_1_6_Info_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var infoData = disquuun.Info().DEPRICATED_Sync();
         var infoResult = DisquuunDeserializer.Info(infoData);
 
         Assert("_1_6_Info_Sync", 0, infoResult.jobs.registered_jobs, "not match.");
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_7_Hello_Sync(Disquuun disquuun)
+    public long _1_7_Hello_Sync(Disquuun disquuun)
     {
         WaitUntil("_1_7_Hello_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var helloData = disquuun.Hello().DEPRICATED_Sync();
         var helloResult = DisquuunDeserializer.Hello(helloData);
 
         Assert("_1_7_Hello_Sync", "1", helloResult.version, "not match.");
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_8_Qlen_Sync(Disquuun disquuun)
+    public long _1_8_Qlen_Sync(Disquuun disquuun)
     {
         WaitUntil("_1_8_Qlen_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
 
         var queueId = Guid.NewGuid().ToString();
         var jobId = DisquuunDeserializer.AddJob(
@@ -294,11 +370,17 @@ public partial class Tests
         Assert("_1_8_Qlen_Sync", 1, qlen, "not match.");
 
         disquuun.FastAck(new string[] { jobId }).DEPRICATED_Sync();
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
-    public void _1_9_Qstat_Sync(Disquuun disquuun)
+    public long _1_9_Qstat_Sync(Disquuun disquuun)
     {
         WaitUntil("_1_9_Qstat_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+        var w = new Stopwatch();
+        w.Start();
+
+
         var queueId = Guid.NewGuid().ToString();
         var jobId = DisquuunDeserializer.AddJob(
             disquuun.AddJob(queueId, data_10).DEPRICATED_Sync()
@@ -309,10 +391,12 @@ public partial class Tests
         Assert("_1_9_Qstat_Sync", 1, qstatData.len, "not match.");
 
         disquuun.FastAck(new string[] { jobId }).DEPRICATED_Sync();
+        w.Stop();
+        return w.ElapsedMilliseconds;
     }
 
 
-    public void _1_10_Qpeek_Sync(Disquuun disquuun)
+    public long _1_10_Qpeek_Sync(Disquuun disquuun)
     {
         DisquuunLogger.Log("_1_10_Qpeek_Sync not yet applied");
         // <queue-name> <count>
@@ -328,9 +412,10 @@ public partial class Tests
         // var infoResult = DisquuunDeserializer.Info(infoData);
 
         // Assert("", 0, infoResult.jobs.registered_jobs, "not match.");
+        return 0;
     }
 
-    public void _1_11_Enqueue_Sync(Disquuun disquuun)
+    public long _1_11_Enqueue_Sync(Disquuun disquuun)
     {
         DisquuunLogger.Log("_1_11_Enqueue_Sync not yet applied");
         // <job-id> ... <job-id>
@@ -341,9 +426,11 @@ public partial class Tests
         // var infoResult = DisquuunDeserializer.Info(infoData);
 
         // Assert("", 0, infoResult.jobs.registered_jobs, "not match.");
+        return 0;
     }
 
-    public void _1_12_Dequeue_Sync(Disquuun disquuun)
+
+    public long _1_12_Dequeue_Sync(Disquuun disquuun)
     {
         DisquuunLogger.Log("_1_12_Dequeue_Sync not yet applied");
         // <job-id> ... <job-id>
@@ -354,9 +441,10 @@ public partial class Tests
         // var infoResult = DisquuunDeserializer.Info(infoData);
 
         // Assert("", 0, infoResult.jobs.registered_jobs, "not match.");
+        return 0;
     }
 
-    public void _1_13_DelJob_Sync(Disquuun disquuun)
+    public long _1_13_DelJob_Sync(Disquuun disquuun)
     {
         DisquuunLogger.Log("_1_13_DelJob_Sync not yet applied");
         // <job-id> ... <job-id>
@@ -367,9 +455,10 @@ public partial class Tests
         // var infoResult = DisquuunDeserializer.Info(infoData);
 
         // Assert("", 0, infoResult.jobs.registered_jobs, "not match.");
+        return 0;
     }
 
-    public void _1_14_Show_Sync(Disquuun disquuun)
+    public long _1_14_Show_Sync(Disquuun disquuun)
     {
         DisquuunLogger.Log("_1_14_Show_Sync not yet applied");
         // <job-id>
@@ -380,9 +469,10 @@ public partial class Tests
         // var infoResult = DisquuunDeserializer.Info(infoData);
 
         // Assert("", 0, infoResult.jobs.registered_jobs, "not match.");
+        return 0;
     }
 
-    public void _1_15_Qscan_Sync(Disquuun disquuun)
+    public long _1_15_Qscan_Sync(Disquuun disquuun)
     {
         DisquuunLogger.Log("_1_15_Qscan_Sync not yet applied");
         // [COUNT <count>] [BUSYLOOP] [MINLEN <len>] [MAXLEN <len>] [IMPORTRATE <rate>]
@@ -393,9 +483,10 @@ public partial class Tests
         // var infoResult = DisquuunDeserializer.Info(infoData);
 
         // Assert("", 0, infoResult.jobs.registered_jobs, "not match.");
+        return 0;
     }
 
-    public void _1_16_Jscan_Sync(Disquuun disquuun)
+    public long _1_16_Jscan_Sync(Disquuun disquuun)
     {
         DisquuunLogger.Log("_1_16_Jscan_Sync not yet applied");
         // [<cursor>] [COUNT <count>] [BUSYLOOP] [QUEUE <queue>] [STATE <state1> STATE <state2> ... STATE <stateN>] [REPLY all|id]
@@ -406,9 +497,10 @@ public partial class Tests
         // var infoResult = DisquuunDeserializer.Info(infoData);
 
         // Assert("", 0, infoResult.jobs.registered_jobs, "not match.");
+        return 0;
     }
 
-    public void _1_17_Pause_Sync(Disquuun disquuun)
+    public long _1_17_Pause_Sync(Disquuun disquuun)
     {
         DisquuunLogger.Log("_1_17_Pause_Sync not yet applied");
         // <queue-name> option1 [option2 ... optionN]
@@ -419,5 +511,6 @@ public partial class Tests
         // var pauseResult = DisquuunDeserializer.Info(pauseData);
 
         // Assert("", 0, pauseResult.jobs.registered_jobs, "not match.");
+        return 0;
     }
 }

@@ -98,12 +98,14 @@ namespace DisquuunCore
             long bufferSize,
             int defaultConnectionCount,
             Action<string> ConnectionOpenedAct = null,
-            Action<string, Exception> ConnectionFailedAct = null
+            Action<string, Exception> ConnectionFailedAct = null,
+            Func<int, bool> OnSocketShortage = null
         )
         {
             this.connectionId = Guid.NewGuid().ToString();
 
             this.endPoint = new IPEndPoint(IPAddress.Parse(host), port);
+            this.bufferSize = bufferSize;
 
             this.connectionState = ConnectionState.OPENING;
 
@@ -139,10 +141,16 @@ namespace DisquuunCore
                 defaultConnectionIndexies.Add(i, false);
             }
 
-            this.socketPool = new DisquuunSocketPool(defaultConnectionCount, this.OnSocketOpened, this.OnSocketConnectionFailed);
+            this.socketPool = new DisquuunSocketPool(
+                defaultConnectionCount,
+                this.OnSocketOpened,
+                this.OnSocketConnectionFailed,
+                OnSocketShortage,
+                endPoint,
+                bufferSize
+            );
 
-            this.bufferSize = bufferSize;
-            this.socketPool.Connect(endPoint, bufferSize);
+            this.socketPool.Connect();
         }
 
         public int StackedCommandCount()

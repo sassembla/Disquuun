@@ -14,19 +14,36 @@ namespace DisquuunCore
 
         private object poolLock = new object();
 
-        public DisquuunSocketPool(int defaultConnectionCount, Action<DisquuunSocket, int> OnSocketOpened, Action<DisquuunSocket, string, Exception> OnSocketConnectionFailed)
+        private readonly IPEndPoint endPoint;
+        private readonly long bufferSize;
+
+        public DisquuunSocketPool(
+            int defaultConnectionCount,
+            Action<DisquuunSocket, int> OnSocketOpened,
+            Action<DisquuunSocket, string, Exception> OnSocketConnectionFailed,
+            Func<int, bool> OnSocketShortage,
+            IPEndPoint endPoint,
+            long bufferSize)
         {
             this.disquuunDataStack = new SocketBase();
             disquuunDataStack.ReadyStack();
+            if (OnSocketShortage != null)
+            {
+                this.OnSocketShortage = OnSocketShortage;
+            }
 
             this.sockets = new Hashtable();
             for (var i = 0; i < defaultConnectionCount; i++)
             {
                 this.sockets.Add(i, new DisquuunSocket(i, OnSocketOpened, this.OnReloaded, OnSocketConnectionFailed));
             }
-        }
 
-        public void Connect(IPEndPoint endPoint, long bufferSize)
+            this.endPoint = endPoint;
+            this.bufferSize = bufferSize;
+        }
+        private Func<int, bool> OnSocketShortage;
+
+        public void Connect()
         {
             for (var i = 0; i < sockets.Count; i++)
             {
@@ -45,6 +62,7 @@ namespace DisquuunCore
                 }
             }
         }
+        private int alertedSocketCount;
 
         public SocketBase ChooseAvailableSocket()
         {
@@ -61,9 +79,42 @@ namespace DisquuunCore
                     }
                 }
 
-                // no queue available, stack.
+                // no socket available, stack.
+                if (alertedSocketCount != sockets.Count)
+                {
+                    alertedSocketCount = sockets.Count;
+                    if (OnSocketShortage != null)
+                    {
+                        var shouldAddSocket = OnSocketShortage(alertedSocketCount);
+                        if (shouldAddSocket)
+                        {
+                            AddNewSocket();
+                        }
+                    }
+                }
+
                 return disquuunDataStack;
             }
+        }
+
+        private void AddNewSocket()
+        {
+            var newSock = new DisquuunSocket(
+                -1,
+                (newSocket, index) =>
+                {
+                    // connected, add to hashtable.
+                    lock (poolLock)
+                    {
+                        var count = sockets.Count;
+                        sockets.Add(count, newSocket);
+                    }
+                },
+                this.OnReloaded,
+                (newSocket, reason, err) => { }
+            );
+
+            newSock.Connect(endPoint, bufferSize);
         }
 
         public void OnReloaded(DisquuunSocket reloadedSocket)

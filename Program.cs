@@ -22,43 +22,7 @@ namespace DisquuunTest
         }
     }
 
-    [ShortRunJob]
-    public class DisquuunBench2
-    {
-        [Benchmark]
-        public void Bench()
-        {
-            Disquuun disquuun = null;
-            var sampleQueueName = Guid.NewGuid().ToString();
-            var n = 100;
 
-            var waitHandles = new ManualResetEvent[n];
-            for (var i = 0; i < n; i++)
-            {
-                waitHandles[i] = new ManualResetEvent(false);
-            }
-            disquuun = new Disquuun(
-                "127.0.0.1", 7711, 1024, 10, id =>
-                {
-                    for (var i = 0; i < n; i++)
-                    {
-                        var index = i;
-                        disquuun.AddJob(sampleQueueName, new byte[100]).Async(
-                            (command, data) =>
-                            {
-                                waitHandles[index].Set();
-                            }
-                        );
-                    }
-                }
-            );
-
-            for (var i = 0; i < n; i++)
-            {
-                waitHandles[i].WaitOne(Timeout.Infinite);
-            }
-        }
-    }
 
     [ShortRunJob]
     public class DisquuunBench
@@ -82,6 +46,15 @@ namespace DisquuunTest
                     {
                         waitHandle.Set();
                         // Console.WriteLine("ready2");
+                    },
+                    (conId, e) =>
+                    {
+                        Console.WriteLine("socket e:" + e);
+                    },
+                    currentSocketCount =>
+                    {
+
+                        return true;
                     }
                 );
                 waitHandle.WaitOne(Timeout.Infinite);
@@ -93,6 +66,15 @@ namespace DisquuunTest
                     {
                         waitHandle.Set();
                         // Console.WriteLine("ready10");
+                    },
+                    (conId, e) =>
+                    {
+                        Console.WriteLine("socket e:" + e);
+                    },
+                    currentSocketCount =>
+                    {
+
+                        return true;
                     }
                 );
                 waitHandle.WaitOne(Timeout.Infinite);
@@ -104,6 +86,15 @@ namespace DisquuunTest
                     {
                         waitHandle.Set();
                         // Console.WriteLine("ready30");
+                    },
+                    (conId, e) =>
+                    {
+                        Console.WriteLine("socket e:" + e);
+                    },
+                    currentSocketCount =>
+                    {
+
+                        return true;
                     }
                 );
                 waitHandle.WaitOne(Timeout.Infinite);

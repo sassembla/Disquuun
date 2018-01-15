@@ -9,7 +9,7 @@ using DisquuunCore.Deserialize;
 
 public partial class Tests
 {
-    public void _4_0_ByfferOverWithSingleSyncGetJob_Sync(Disquuun disquuun)
+    public long _4_0_ByfferOverWithSingleSyncGetJob_Sync(Disquuun disquuun)
     {
         WaitUntil("_4_0_ByfferOverWithSingleSyncGetJob_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
@@ -24,9 +24,10 @@ public partial class Tests
         // ack in.
         var jobIds = jobDatas.Select(job => job.jobId).ToArray();
         disquuun.FastAck(jobIds).DEPRICATED_Sync();
+        return 0;
     }
 
-    public void _4_1_ByfferOverWithMultipleSyncGetJob_Sync(Disquuun disquuun)
+    public long _4_1_ByfferOverWithMultipleSyncGetJob_Sync(Disquuun disquuun)
     {
         WaitUntil("_4_1_ByfferOverWithMultipleSyncGetJob_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
@@ -42,9 +43,10 @@ public partial class Tests
         // ack in.
         var jobIds = jobDatas.Select(job => job.jobId).ToArray();
         disquuun.FastAck(jobIds).DEPRICATED_Sync();
+        return 0;
     }
 
-    public void _4_2_ByfferOverWithSokcetOverSyncGetJob_Sync(Disquuun disquuun)
+    public long _4_2_ByfferOverWithSokcetOverSyncGetJob_Sync(Disquuun disquuun)
     {
         WaitUntil("_4_2_ByfferOverWithSokcetOverSyncGetJob_Sync", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
@@ -60,9 +62,10 @@ public partial class Tests
         // ack in.
         var jobIds = jobDatas.Select(job => job.jobId).ToArray();
         disquuun.FastAck(jobIds).DEPRICATED_Sync();
+        return 0;
     }
 
-    public void _4_3_ByfferOverWithSingleSyncGetJob_Async(Disquuun disquuun)
+    public long _4_3_ByfferOverWithSingleSyncGetJob_Async(Disquuun disquuun)
     {
         WaitUntil("_4_3_ByfferOverWithSingleSyncGetJob_Async", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
@@ -83,9 +86,10 @@ public partial class Tests
         // ack in.
         var jobIds = jobDatas.Select(job => job.jobId).ToArray();
         disquuun.FastAck(jobIds).DEPRICATED_Sync();
+        return 0;
     }
 
-    public void _4_4_ByfferOverWithMultipleSyncGetJob_Async(Disquuun disquuun)
+    public long _4_4_ByfferOverWithMultipleSyncGetJob_Async(Disquuun disquuun)
     {
         WaitUntil("_4_4_ByfferOverWithMultipleSyncGetJob_Async", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
@@ -107,9 +111,10 @@ public partial class Tests
         // ack in.
         var jobIds = jobDatas.Select(job => job.jobId).ToArray();
         disquuun.FastAck(jobIds).DEPRICATED_Sync();
+        return 0;
     }
 
-    public void _4_5_ByfferOverWithSokcetOverSyncGetJob_Async(Disquuun disquuun)
+    public long _4_5_ByfferOverWithSokcetOverSyncGetJob_Async(Disquuun disquuun)
     {
         WaitUntil("_4_5_ByfferOverWithSokcetOverSyncGetJob_Async", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
@@ -131,5 +136,6 @@ public partial class Tests
         // ack in.
         var jobIds = jobDatas.Select(job => job.jobId).ToArray();
         disquuun.FastAck(jobIds).DEPRICATED_Sync();
+        return 0;
     }
 }

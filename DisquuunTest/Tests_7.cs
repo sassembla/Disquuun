@@ -15,12 +15,11 @@ public partial class Tests
 
     private object _7_0_AddJob1000LockObject = new object();
 
-    public void _7_0_AddJob1000(Disquuun disquuun)
+    public long _7_0_AddJob1000(Disquuun disquuun)
     {
         WaitUntil("_7_0_AddJob1000", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
         var count = 1000 * ratio;
-        TestLogger.Log("_7_0_AddJob1000 ratio:" + count);
 
         var connectedCount = 0;
         disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
@@ -31,11 +30,16 @@ public partial class Tests
             (info, e) =>
             {
                 TestLogger.Log("error, info:" + info + " e:" + e);
+            },
+            currentSocketCount =>
+            {
+
+                return false;
             }
         );
 
 
-        WaitUntil("_7_0_AddJob1000", () => (connectedCount == 1), 5);
+        WaitUntil("_7_0_AddJob1000", () => (connectedCount == 1), 10);
 
 
         var addedCount = 0;
@@ -54,8 +58,6 @@ public partial class Tests
             );
         }
         w.Stop();
-        TestLogger.Log("_7_0_AddJob1000 w:" + w.ElapsedMilliseconds + " tick:" + w.ElapsedTicks);
-
 
         WaitUntil("_7_0_AddJob1000", () => (addedCount == count), 100);
 
@@ -80,16 +82,16 @@ public partial class Tests
 
         WaitUntil("_7_0_AddJob1000", () => (gotCount == count), 10);
         disquuun.Disconnect();
+        return w.ElapsedMilliseconds;
     }
 
     private object _7_0_0_AddJob1000by100ConnectionLockObject = new object();
 
-    public void _7_0_0_AddJob1000by100Connection(Disquuun disquuun)
+    public long _7_0_0_AddJob1000by100Connection(Disquuun disquuun)
     {
         WaitUntil("_7_0_0_AddJob1000by100Connection", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
         var count = 1000 * ratio;
-        TestLogger.Log("_7_0_0_AddJob1000by100Connection ratio:" + count);
 
         var connectedCount = 0;
         disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
@@ -100,6 +102,11 @@ public partial class Tests
             (info, e) =>
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
+            },
+            currentSocketCount =>
+            {
+
+                return false;
             }
         );
 
@@ -121,7 +128,6 @@ public partial class Tests
             );
         }
         w.Stop();
-        TestLogger.Log("_7_0_0_AddJob1000by100Connection w:" + w.ElapsedMilliseconds + " tick:" + w.ElapsedTicks);
 
         WaitUntil("_7_0_0_AddJob1000by100Connection 1", () => (addedCount == count), 100);
 
@@ -146,16 +152,17 @@ public partial class Tests
 
         WaitUntil("_7_0_0_AddJob1000by100Connection 2", () => (gotCount == count), 10);
         disquuun.Disconnect();
+
+        return w.ElapsedMilliseconds;
     }
 
     private object _7_0_1_AddJob1000byPipelineObject = new object();
 
-    public void _7_0_1_AddJob1000byPipeline(Disquuun disquuun)
+    public long _7_0_1_AddJob1000byPipeline(Disquuun disquuun)
     {
         WaitUntil("_7_0_1_AddJob1000byPipeline", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
         var count = 1000 * ratio;
-        TestLogger.Log("_7_0_1_AddJob1000byPipeline ratio:" + count);
 
         var connectedCount = 0;
         disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
@@ -166,6 +173,11 @@ public partial class Tests
             (info, e) =>
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
+            },
+            currentSocketCount =>
+            {
+
+                return false;
             }
         );
 
@@ -183,7 +195,6 @@ public partial class Tests
         {
             disquuun.Pipeline(disquuun.AddJob(queueId, data_10));
         }
-        TestLogger.Log("set done, " + w.ElapsedMilliseconds);
         disquuun.Pipeline().Execute(
             (command, data) =>
             {
@@ -195,8 +206,6 @@ public partial class Tests
         );
 
         w.Stop();
-        TestLogger.Log("_7_0_1_AddJob1000byPipeline w:" + w.ElapsedMilliseconds + " tick:" + w.ElapsedTicks);
-
         WaitUntil("_7_0_1_AddJob1000byPipeline 1", () => (addedCount == count), 100);
 
         var gotCount = 0;
@@ -220,16 +229,17 @@ public partial class Tests
 
         WaitUntil("_7_0_1_AddJob1000byPipeline 2", () => (gotCount == count), 10);
         disquuun.Disconnect();
+
+        return w.ElapsedMilliseconds;
     }
 
     private object _7_0_2_AddJob1000byPipelinesObject = new object();
 
-    public void _7_0_2_AddJob1000byPipelines(Disquuun disquuun)
+    public long _7_0_2_AddJob1000byPipelines(Disquuun disquuun)
     {
         WaitUntil("_7_0_2_AddJob1000byPipelines", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
         var count = 1000 * ratio;
-        TestLogger.Log("_7_0_2_AddJob1000byPipelines ratio:" + count);
 
         var connectedCount = 0;
         disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
@@ -240,6 +250,11 @@ public partial class Tests
             (info, e) =>
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
+            },
+            currentSocketCount =>
+            {
+
+                return false;
             }
         );
 
@@ -266,7 +281,6 @@ public partial class Tests
         );
 
         w.Stop();
-        TestLogger.Log("_7_0_2_AddJob1000byPipelines w:" + w.ElapsedMilliseconds + " tick:" + w.ElapsedTicks);
 
         WaitUntil("_7_0_2_AddJob1000byPipelines 1", () => (addedCount == count), 100);
 
@@ -291,16 +305,17 @@ public partial class Tests
 
         WaitUntil("_7_0_2_AddJob1000byPipelines 2", () => (gotCount == count), 10);
         disquuun.Disconnect();
+
+        return w.ElapsedMilliseconds;
     }
 
     private object _7_1_GetJob1000Lock = new object();
 
-    public void _7_1_GetJob1000(Disquuun disquuun)
+    public long _7_1_GetJob1000(Disquuun disquuun)
     {
         WaitUntil("_7_1_GetJob1000", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
         var addingJobCount = 1000 * ratio;
-        TestLogger.Log("_7_1_GetJob1000 ratio:" + addingJobCount);
 
         var connected = false;
         disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
@@ -312,11 +327,16 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message, true);
                 throw e;
+            },
+            currentSocketCount =>
+            {
+
+                return false;
             }
         );
 
         var r0 = WaitUntil("r0 _7_1_GetJob1000", () => connected, 5);
-        if (!r0) return;
+        if (!r0) return 0;
 
         var addedCount = 0;
 
@@ -333,7 +353,7 @@ public partial class Tests
         }
 
         var r1 = WaitUntil("r1 _7_1_GetJob1000", () => (addedCount == addingJobCount), 10);
-        if (!r1) return;
+        if (!r1) return 0;
 
         var gotJobDataIds = new List<string>();
 
@@ -359,26 +379,26 @@ public partial class Tests
         if (!r2)
         {
             TestLogger.Log("gotJobDataIds:" + gotJobDataIds.Count, true);
-            return;
+            return 0;
         }
 
         w.Stop();
-        TestLogger.Log("_7_1_GetJob1000 w:" + w.ElapsedMilliseconds + " tick:" + w.ElapsedTicks);
 
         var result = DisquuunDeserializer.FastAck(disquuun.FastAck(gotJobDataIds.ToArray()).DEPRICATED_Sync());
 
         Assert("_7_1_GetJob1000", addingJobCount, result, "result not match.");
         disquuun.Disconnect();
+
+        return w.ElapsedMilliseconds;
     }
 
     private object _7_1_0_GetJob1000by100ConnectionLockObject = new object();
 
-    public void _7_1_0_GetJob1000by100Connection(Disquuun disquuun)
+    public long _7_1_0_GetJob1000by100Connection(Disquuun disquuun)
     {
         WaitUntil("_7_1_0_GetJob1000by100Connection", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
         var addingJobCount = 1000 * ratio;
-        TestLogger.Log("_7_1_0_GetJob1000by100Connection ratio:" + addingJobCount);
 
         var connected = false;
         disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
@@ -389,6 +409,11 @@ public partial class Tests
             (info, e) =>
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
+            },
+            currentSocketCount =>
+            {
+
+                return false;
             }
         );
 
@@ -435,22 +460,22 @@ public partial class Tests
 
 
         w.Stop();
-        TestLogger.Log("_7_1_0_GetJob1000by100Connection w:" + w.ElapsedMilliseconds + " tick:" + w.ElapsedTicks);
 
         var result = DisquuunDeserializer.FastAck(disquuun.FastAck(gotJobDataIds.ToArray()).DEPRICATED_Sync());
 
         Assert("_7_1_0_GetJob1000by100Connection", addingJobCount, result, "result not match.");
         disquuun.Disconnect();
+
+        return w.ElapsedMilliseconds;
     }
 
     private object _7_1_1_GetJob1000byPipelineObject = new object();
 
-    public void _7_1_1_GetJob1000byPipeline(Disquuun disquuun)
+    public long _7_1_1_GetJob1000byPipeline(Disquuun disquuun)
     {
         WaitUntil("_7_1_1_GetJob1000byPipeline", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
         var addingJobCount = 1000 * ratio;
-        TestLogger.Log("_7_1_1_GetJob1000byPipeline ratio:" + addingJobCount);
 
         var connected = false;
         disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
@@ -461,6 +486,11 @@ public partial class Tests
             (info, e) =>
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
+            },
+            currentSocketCount =>
+            {
+
+                return false;
             }
         );
 
@@ -510,22 +540,22 @@ public partial class Tests
 
 
         w.Stop();
-        TestLogger.Log("_7_1_1_GetJob1000byPipeline w:" + w.ElapsedMilliseconds + " tick:" + w.ElapsedTicks);
 
         var result = DisquuunDeserializer.FastAck(disquuun.FastAck(gotJobDataIds.ToArray()).DEPRICATED_Sync());
 
         Assert("_7_1_1_GetJob1000byPipeline", addingJobCount, result, "result not match.");
         disquuun.Disconnect();
+
+        return w.ElapsedMilliseconds;
     }
 
     private object _7_1_2_GetJob1000byPipelinesObject = new object();
 
-    public void _7_1_2_GetJob1000byPipelines(Disquuun disquuun)
+    public long _7_1_2_GetJob1000byPipelines(Disquuun disquuun)
     {
         WaitUntil("_7_1_2_GetJob1000byPipelines", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
         var addingJobCount = 1000 * ratio;
-        TestLogger.Log("_7_1_2_GetJob1000byPipelines ratio:" + addingJobCount);
 
         var connected = false;
         disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
@@ -536,6 +566,11 @@ public partial class Tests
             (info, e) =>
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
+            },
+            currentSocketCount =>
+            {
+
+                return false;
             }
         );
 
@@ -586,21 +621,21 @@ public partial class Tests
 
 
         w.Stop();
-        TestLogger.Log("_7_1_2_GetJob1000byPipelines w:" + w.ElapsedMilliseconds + " tick:" + w.ElapsedTicks);
 
         var result = DisquuunDeserializer.FastAck(disquuun.FastAck(gotJobDataIds.ToArray()).DEPRICATED_Sync());
 
         Assert("_7_1_2_GetJob1000byPipelines", addingJobCount, result, "result not match.");
         disquuun.Disconnect();
+
+        return w.ElapsedMilliseconds;
     }
 
     private object _7_2_GetJob1000byLoopLockObject = new object();
-    public void _7_2_GetJob1000byLoop(Disquuun disquuun)
+    public long _7_2_GetJob1000byLoop(Disquuun disquuun)
     {
         WaitUntil("_7_2_GetJob1000byLoop 0", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
         var addingJobCount = 1000 * ratio;
-        TestLogger.Log("_7_2_GetJob1000byLoop ratio:" + addingJobCount);
 
         var queueId = Guid.NewGuid().ToString();
 
@@ -645,8 +680,6 @@ public partial class Tests
         WaitUntil("_7_2_GetJob1000byLoop 2", () => (gotJobDataIds.Count == addingJobCount), 30);
         WaitUntil("_7_2_GetJob1000byLoop 3", () => (0 < disquuun.AvailableSocketNum()), 1);
 
-        TestLogger.Log("_7_2_GetJob1000byLoop w:" + w.ElapsedMilliseconds + " tick:" + w.ElapsedTicks);
-
         var fastackedCount = 0;
         disquuun.FastAck(gotJobDataIds.ToArray()).Async(
             (c, data) =>
@@ -656,18 +689,19 @@ public partial class Tests
         );
 
         WaitUntil("_7_2_GetJob1000byLoop 4", () => (addingJobCount == fastackedCount), 10);
+
+        return w.ElapsedMilliseconds;
     }
 
     /*
 		unexecutable test. because of 
 	*/
     private object _7_2_0_GetJob1000byPipelineObject = new object();
-    public void _7_2_0_GetJob1000byPipeline(Disquuun disquuun)
+    public long _7_2_0_GetJob1000byPipeline(Disquuun disquuun)
     {
         WaitUntil("_7_2_0_GetJob1000byPipeline 0", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
         var addingJobCount = 1000 * ratio;
-        TestLogger.Log("_7_2_0_GetJob1000byPipeline ratio:" + addingJobCount);
 
         var queueId = Guid.NewGuid().ToString();
 
@@ -715,8 +749,6 @@ public partial class Tests
         WaitUntil("_7_2_0_GetJob1000byPipeline 2", () => (gotJobDataIds.Count == addingJobCount), 30);
         WaitUntil("_7_2_0_GetJob1000byPipeline 3", () => (0 < disquuun.AvailableSocketNum()), 1);
 
-        TestLogger.Log("_7_2_0_GetJob1000byPipeline w:" + w.ElapsedMilliseconds + " tick:" + w.ElapsedTicks);
-
         var fastackedCount = 0;
         disquuun.FastAck(gotJobDataIds.ToArray()).Async(
             (c, data) =>
@@ -726,5 +758,7 @@ public partial class Tests
         );
 
         WaitUntil("_7_2_0_GetJob1000byPipeline 4", () => (addingJobCount == fastackedCount), 10);
+
+        return w.ElapsedMilliseconds;
     }
 }

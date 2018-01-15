@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using DisquuunCore;
 using DisquuunCore.Deserialize;
@@ -9,9 +10,13 @@ using DisquuunCore.Deserialize;
 
 public partial class Tests
 {
-    public void _3_0_Nested2AsyncSocket(Disquuun disquuun)
+    public long _3_0_Nested2AsyncSocket(Disquuun disquuun)
     {
         WaitUntil("_3_0_Nested2AsyncSocket", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
+
+        var w = new Stopwatch();
+        w.Start();
+
 
         var jobId1 = string.Empty;
 
@@ -34,6 +39,7 @@ public partial class Tests
         );
 
         WaitUntil("_3_0_Nested2AsyncSocket", () => (!string.IsNullOrEmpty(queueId1) && !string.IsNullOrEmpty(queueId2)), 5);
+        w.Stop();
 
         var done = false;
         disquuun.GetJob(new string[] { queueId1, queueId2 }, "count", 2).Async(
@@ -53,18 +59,23 @@ public partial class Tests
         );
 
         WaitUntil("_3_0_Nested2AsyncSocket", () => done, 5);
+        return w.ElapsedMilliseconds;
     }
 
 
     private object _3_1_NestedMultipleAsyncSocketLockObject = new object();
 
-    public void _3_1_NestedMultipleAsyncSocket(Disquuun disquuun)
+    public long _3_1_NestedMultipleAsyncSocket(Disquuun disquuun)
     {
         WaitUntil("_3_1_NestedMultipleAsyncSocket", () => (disquuun.State() == Disquuun.ConnectionState.OPENED), 5);
 
         var queueId = Guid.NewGuid().ToString();
         var addGetFastAckCount = 100;
         var resultCount = 0;
+
+        var w = new Stopwatch();
+        w.Start();
+
 
         for (var i = 0; i < addGetFastAckCount; i++)
         {
@@ -88,6 +99,8 @@ public partial class Tests
                                     var fastackResult = DisquuunDeserializer.FastAck(d3);
                                     Assert("_3_1_NestedMultipleAsyncSocket", 1, fastackResult, "not match.");
                                     lock (_3_1_NestedMultipleAsyncSocketLockObject) resultCount++;
+                                    w.Stop();
+
                                 }
                             );
                         }
@@ -98,5 +111,7 @@ public partial class Tests
 
 
         WaitUntil("_3_1_NestedMultipleAsyncSocket", () => (resultCount == addGetFastAckCount), 10);
+
+        return w.ElapsedMilliseconds;
     }
 }

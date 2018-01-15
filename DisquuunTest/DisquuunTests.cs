@@ -31,7 +31,7 @@ public partial class Tests
 {
     public void RunTests()
     {
-        var tests = new List<Action<Disquuun>>();
+        var tests = new List<Func<Disquuun, long>>();
         for (var i = 0; i < 1; i++)
         {
             // basement.
@@ -139,25 +139,40 @@ public partial class Tests
             tests.Add(_7_1_1_GetJob1000byPipeline);
             tests.Add(_7_1_2_GetJob1000byPipelines);
             tests.Add(_7_2_GetJob1000byLoop);
-            // tests.Add(_7_2_0_GetJob1000byPipeline);// unexecutable.
+
+            // scalable benchmarks.
+            tests.Add(_8_0_AddJob1000);
+            tests.Add(_8_0_0_AddJob1000by100Connection);
+            tests.Add(_8_0_1_AddJob1000byPipeline);
+            tests.Add(_8_0_2_AddJob1000byPipelines);
+            tests.Add(_8_1_GetJob1000);
+            tests.Add(_8_1_0_GetJob1000by100Connection);
+            tests.Add(_8_1_1_GetJob1000byPipeline);
+            tests.Add(_8_1_2_GetJob1000byPipelines);
+            tests.Add(_8_2_GetJob1000byLoop);
 
             // data size bounding case.
-            tests.Add(_8_0_LargeSizeSendThenSmallSizeSendMakeEmitOnSendAfterOnReceived);
-            tests.Add(_8_1_LargeSizeSendThenSmallSizeSendLoopMakeEmitOnSendAfterOnReceived);
+            tests.Add(_9_0_LargeSizeSendThenSmallSizeSendMakeEmitOnSendAfterOnReceived);
+            tests.Add(_9_1_LargeSizeSendThenSmallSizeSendLoopMakeEmitOnSendAfterOnReceived);
 
             // pipeline
-            tests.Add(_0_9_0_PipelineCommands);
-            tests.Add(_0_9_1_MultiplePipeline);
-            tests.Add(_0_9_2_MultipleCommandPipeline);
-            tests.Add(_0_9_3_SomeCommandPipeline);
-            tests.Add(_0_9_4_MassiveCommandPipeline);
-            tests.Add(_0_9_5_Pipelines);
+            tests.Add(_0_10_0_PipelineCommands);
+            tests.Add(_0_10_1_MultiplePipeline);
+            tests.Add(_0_10_2_MultipleCommandPipeline);
+            tests.Add(_0_10_3_SomeCommandPipeline);
+            tests.Add(_0_10_4_MassiveCommandPipeline);
+            tests.Add(_0_10_5_Pipelines);
 
         }
 
         try
         {
-            var disquuunForResultInfo = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 10240, 1);
+            var disquuunForResultInfo = new Disquuun(
+                DisquuunTests.TestDisqueHostStr,
+                DisquuunTests.TestDisquePortNum,
+                10240,
+                1
+            );
             WaitUntil(
                 "_internal",
                 () => disquuunForResultInfo.State() == Disquuun.ConnectionState.OPENED,
@@ -177,7 +192,13 @@ public partial class Tests
                         DisquuunTests.TestDisqueHostStr,
                         DisquuunTests.TestDisquePortNum,
                         2020008,
-                        20
+                        20,
+                        (id) => { },
+                        (k, e) => { },
+                        currentSocketCount =>
+                        {
+                            return false;
+                        }
                     );// this buffer size is just for 100byte job x 10000 then receive 1 GetJob(count 1000).
 
                     // すべての接続ができるまで待つ
@@ -187,7 +208,7 @@ public partial class Tests
                         5
                     );
 
-                    test(disquuun);
+                    var elapsedMilliSec = test(disquuun);
 
                     if (disquuun != null)
                     {
@@ -205,7 +226,7 @@ public partial class Tests
                     }
                     else
                     {
-                        TestLogger.Log("test:" + methodName + " passed.", true);
+                        TestLogger.Log("test:" + methodName + " passed. elapsedMilliSec:" + elapsedMilliSec, true);
                     }
                 }
                 catch (Exception e)

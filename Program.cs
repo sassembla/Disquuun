@@ -54,7 +54,7 @@ namespace DisquuunTest
                     currentSocketCount =>
                     {
 
-                        return true;
+                        return new Tuple<bool, int>(true, 1);
                     }
                 );
                 waitHandle.WaitOne(Timeout.Infinite);
@@ -74,7 +74,7 @@ namespace DisquuunTest
                     currentSocketCount =>
                     {
 
-                        return true;
+                        return new Tuple<bool, int>(true, 1);
                     }
                 );
                 waitHandle.WaitOne(Timeout.Infinite);
@@ -94,7 +94,7 @@ namespace DisquuunTest
                     currentSocketCount =>
                     {
 
-                        return true;
+                        return new Tuple<bool, int>(true, 1);
                     }
                 );
                 waitHandle.WaitOne(Timeout.Infinite);

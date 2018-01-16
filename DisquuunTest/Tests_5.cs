@@ -26,7 +26,7 @@ public partial class Tests
             currentSocketCount =>
             {
 
-                return false;
+                return null;
             }
         );
 
@@ -59,7 +59,7 @@ public partial class Tests
             currentSocketCount =>
             {
 
-                return false;
+                return null;
             }
         );
 

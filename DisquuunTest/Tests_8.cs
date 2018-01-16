@@ -35,9 +35,9 @@ public partial class Tests
 
                 if (100 < currentSocketCount)
                 {
-                    return false;
+                    return null;
                 }
-                return true;
+                return new Tuple<bool, int>(true, 1);
             }
         );
 
@@ -112,9 +112,9 @@ public partial class Tests
 
                 if (100 < currentSocketCount)
                 {
-                    return false;
+                    return null;
                 }
-                return true;
+                return new Tuple<bool, int>(true, 1);
             }
         );
 
@@ -187,9 +187,9 @@ public partial class Tests
 
                 if (100 < currentSocketCount)
                 {
-                    return false;
+                    return null;
                 }
-                return true;
+                return new Tuple<bool, int>(true, 1);
             }
         );
 
@@ -268,9 +268,9 @@ public partial class Tests
 
                 if (100 < currentSocketCount)
                 {
-                    return false;
+                    return null;
                 }
-                return true;
+                return new Tuple<bool, int>(true, 1);
             }
         );
 
@@ -347,9 +347,9 @@ public partial class Tests
 
                 if (100 < currentSocketCount)
                 {
-                    return false;
+                    return null;
                 }
-                return true;
+                return new Tuple<bool, int>(true, 1);
             }
         );
 
@@ -433,9 +433,9 @@ public partial class Tests
 
                 if (100 < currentSocketCount)
                 {
-                    return false;
+                    return null;
                 }
-                return true;
+                return new Tuple<bool, int>(true, 1);
             }
         );
 
@@ -514,9 +514,9 @@ public partial class Tests
 
                 if (100 < currentSocketCount)
                 {
-                    return false;
+                    return null;
                 }
-                return true;
+                return new Tuple<bool, int>(true, 1);
             }
         );
 
@@ -598,9 +598,9 @@ public partial class Tests
 
                 if (100 < currentSocketCount)
                 {
-                    return false;
+                    return null;
                 }
-                return true;
+                return new Tuple<bool, int>(true, 1);
             }
         );
 

@@ -99,7 +99,7 @@ namespace DisquuunCore
             int defaultConnectionCount,
             Action<string> ConnectionOpenedAct = null,
             Action<string, Exception> ConnectionFailedAct = null,
-            Func<int, bool> OnSocketShortage = null
+            Func<int, Tuple<bool, int>> OnSocketShortage = null
         )
         {
             this.connectionId = Guid.NewGuid().ToString();

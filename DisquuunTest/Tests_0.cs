@@ -40,7 +40,7 @@ public partial class Tests
             currentSocketCount =>
             {
 
-                return false;
+                return null;
             }
         );
         WaitUntil("_0_0_1_WaitOnOpen2Connection", () => !string.IsNullOrEmpty(conId), 5);
@@ -80,7 +80,7 @@ public partial class Tests
             currentSocketCount =>
             {
 
-                return false;
+                return null;
             }
         );
 
@@ -140,7 +140,7 @@ public partial class Tests
             currentSocketCount =>
             {
 
-                return false;
+                return null;
             }
         );
 
@@ -212,7 +212,7 @@ public partial class Tests
             currentSocketCount =>
             {
 
-                return false;
+                return null;
             }
         );
 
@@ -243,7 +243,7 @@ public partial class Tests
             currentSocketCount =>
             {
 
-                return false;
+                return null;
             }
         );
 

@@ -197,7 +197,7 @@ public partial class Tests
                         (k, e) => { },
                         currentSocketCount =>
                         {
-                            return false;
+                            return null;
                         }
                     );// this buffer size is just for 100byte job x 10000 then receive 1 GetJob(count 1000).
 
@@ -222,16 +222,16 @@ public partial class Tests
 
                     if (restJobCount != 0)
                     {
-                        TestLogger.Log("test:" + methodName + " rest job:" + restJobCount, true);
+                        TestLogger.Log("test:" + methodName + "     rest job:" + restJobCount, true);
                     }
                     else
                     {
-                        TestLogger.Log("test:" + methodName + " passed. elapsedMilliSec:" + elapsedMilliSec, true);
+                        TestLogger.Log("test:" + methodName + "     passed. elapsedMilliSec:" + elapsedMilliSec, true);
                     }
                 }
                 catch (Exception e)
                 {
-                    TestLogger.Log("test:" + methodName + " FAILED by exception:" + e, true);
+                    TestLogger.Log("test:" + methodName + "     FAILED by exception:" + e, true);
                 }
             }
 

@@ -21,7 +21,7 @@ namespace DisquuunCore
             int defaultConnectionCount,
             Action<DisquuunSocket, int> OnSocketOpened,
             Action<DisquuunSocket, string, Exception> OnSocketConnectionFailed,
-            Func<int, bool> OnSocketShortage,
+            Func<int, Tuple<bool, int>> OnSocketShortage,
             IPEndPoint endPoint,
             long bufferSize)
         {
@@ -41,7 +41,7 @@ namespace DisquuunCore
             this.endPoint = endPoint;
             this.bufferSize = bufferSize;
         }
-        private Func<int, bool> OnSocketShortage;
+        private Func<int, Tuple<bool, int>> OnSocketShortage;
 
         public void Connect()
         {
@@ -80,41 +80,89 @@ namespace DisquuunCore
                 }
 
                 // no socket available, stack.
-                if (alertedSocketCount != sockets.Count)
-                {
-                    alertedSocketCount = sockets.Count;
-                    if (OnSocketShortage != null)
-                    {
-                        var shouldAddSocket = OnSocketShortage(alertedSocketCount);
-                        if (shouldAddSocket)
-                        {
-                            AddNewSocket();
-                        }
-                    }
-                }
+                AddPressure();
 
                 return disquuunDataStack;
             }
         }
 
-        private void AddNewSocket()
+        private DateTime pressureDate = DateTime.Now;
+        private int pressureContinuation = 0;
+        /**
+            record pressure.
+            if pressure & stacked socket count continues msec x N times,
+            emit alert.
+         */
+        private void AddPressure()
         {
-            var newSock = new DisquuunSocket(
-                -1,
-                (newSocket, index) =>
-                {
-                    // connected, add to hashtable.
-                    lock (poolLock)
-                    {
-                        var count = sockets.Count;
-                        sockets.Add(count, newSocket);
-                    }
-                },
-                this.OnReloaded,
-                (newSocket, reason, err) => { }
-            );
+            if (alertedSocketCount != sockets.Count)
+            {
+                pressureDate = DateTime.Now;
+                alertedSocketCount = sockets.Count;
 
-            newSock.Connect(endPoint, bufferSize);
+                pressureContinuation = 0;
+            }
+            else
+            {
+                if ((DateTime.Now - pressureDate).Milliseconds < DisquuunSettings.PRESSURE_DETECT_INTERVAL_MSEC)
+                {
+                    // pass.
+                }
+                else
+                {
+                    // reset for another N milli sec.
+                    pressureDate = DateTime.Now;
+
+                    if (0 < disquuunDataStack.QueueCount())
+                    {
+                        pressureContinuation = 0;
+                    }
+                    else
+                    {
+                        // count up pressure.
+                        pressureContinuation++;
+
+                        if (DisquuunSettings.PRESSURE_CONTINUATION_LIMIT < pressureContinuation)
+                        {
+                            pressureContinuation = 0;
+                            if (OnSocketShortage != null)
+                            {
+                                var shouldAddSocket = OnSocketShortage(alertedSocketCount);
+                                if (shouldAddSocket == null)
+                                {
+                                    // ignore.
+                                }
+                                else if (shouldAddSocket.Item1)
+                                {
+                                    AddNewSocket(shouldAddSocket.Item2);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void AddNewSocket(int count)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var newSock = new DisquuunSocket(
+                    -1,
+                    (newSocket, index) =>
+                    {
+                        // connected, add to hashtable.
+                        lock (poolLock)
+                        {
+                            sockets.Add(sockets.Count, newSocket);
+                        }
+                    },
+                    this.OnReloaded,
+                    (newSocket, reason, err) => { }
+                );
+
+                newSock.Connect(endPoint, bufferSize);
+            }
         }
 
         public void OnReloaded(DisquuunSocket reloadedSocket)

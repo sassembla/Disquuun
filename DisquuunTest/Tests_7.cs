@@ -31,10 +31,10 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
 
@@ -103,10 +103,10 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
 
@@ -174,10 +174,10 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
 
@@ -251,10 +251,10 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
 
@@ -328,10 +328,10 @@ public partial class Tests
                 TestLogger.Log("error, info:" + info + " e:" + e.Message, true);
                 throw e;
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
 
@@ -410,10 +410,10 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
 
@@ -487,10 +487,10 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
 
@@ -567,10 +567,10 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
 

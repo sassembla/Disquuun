@@ -195,9 +195,9 @@ public partial class Tests
                         20,
                         (id) => { },
                         (k, e) => { },
-                        currentSocketCount =>
+                        (currentSocketCount, addSocket) =>
                         {
-                            return null;
+                            return;
                         }
                     );// this buffer size is just for 100byte job x 10000 then receive 1 GetJob(count 1000).
 

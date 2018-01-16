@@ -99,7 +99,7 @@ namespace DisquuunCore
             int defaultConnectionCount,
             Action<string> ConnectionOpenedAct = null,
             Action<string, Exception> ConnectionFailedAct = null,
-            Func<int, Tuple<bool, int>> OnSocketShortage = null
+            Action<int, Action<bool, int>> OnSocketShortage = null
         )
         {
             this.connectionId = Guid.NewGuid().ToString();
@@ -390,19 +390,17 @@ namespace DisquuunCore
         const string header = "disquuun_log:";
         public static void Log(string message, bool write = false)
         {
-            // TestLogger.Log(message, write);
             // Console.WriteLine("log:" + message);
+            // builder.AppendLine(header + message);
 
-            builder.AppendLine(header + message);
-
-            if (write)
-            {
-                using (var sw = new StreamWriter("/Users/passepied/Desktop/Disquuun/log", true))
-                {
-                    sw.WriteLine(builder.ToString());
-                }
-                builder.Clear();
-            }
+            // if (write)
+            // {
+            //     using (var sw = new StreamWriter("/Users/passepied/Desktop/Disquuun/log", true))
+            //     {
+            //         sw.WriteLine(builder.ToString());
+            //     }
+            //     builder.Clear();
+            // }
         }
     }
 }

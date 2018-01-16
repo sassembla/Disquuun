@@ -12,19 +12,19 @@ WarmupCount=3
 ```
 |                          Method |      Mean |      Error |    StdDev |
 |-------------------------------- |----------:|-----------:|----------:|
-|         Take_10byte_2sock_async |  4.040 us |  0.7995 us | 0.0452 us |
-|          Take_10byte_2sock_sync |  1.549 us |  0.2411 us | 0.0136 us |
-|        Take_10byte_10sock_async |  4.290 us |  0.9721 us | 0.0549 us |
-|        Take_10byte_30sock_async |  4.220 us |  1.3237 us | 0.0748 us |
-|   Take_10byte_2sock_sync_10item | 16.081 us | 16.7491 us | 0.9464 us |
-| Take_10byte_10sock_async_10item | 20.856 us | 18.8980 us | 1.0678 us |
-| Take_10byte_30sock_async_10item | 18.623 us |  6.1906 us | 0.3498 us |
-|      Take_10byte_2sock_pipeline |  5.197 us | 11.6224 us | 0.6567 us |
-|     Take_10byte_10sock_pipeline |  5.598 us |  3.1213 us | 0.1764 us |
-|     Take_10byte_30sock_pipeline |  5.065 us |  0.7191 us | 0.0406 us |
-|   Take_10byte_2sock_pipeline_10 | 22.567 us | 12.7912 us | 0.7227 us |
-|  Take_10byte_10sock_pipeline_10 | 25.333 us |  6.0615 us | 0.3425 us |
-|  Take_10byte_30sock_pipeline_10 | 23.269 us | 11.4749 us | 0.6484 us |
-|        Take_10byte_2sock_loop_2 | 32.199 us | 16.3175 us | 0.9220 us |
-|       Take_10byte_10sock_loop_2 | 35.051 us |  4.2557 us | 0.2405 us |
-|       Take_10byte_30sock_loop_2 | 34.979 us |  2.1891 us | 0.1237 us |
+|         Take_10byte_2sock_async |  4.656 us |  6.2569 us | 0.3535 us |
+|          Take_10byte_2sock_sync |  1.730 us |  0.9745 us | 0.0551 us |
+|        Take_10byte_10sock_async |  4.337 us |  0.4410 us | 0.0249 us |
+|        Take_10byte_30sock_async |  4.262 us |  0.7247 us | 0.0409 us |
+|   Take_10byte_2sock_sync_10item | 17.134 us |  8.7683 us | 0.4954 us |
+| Take_10byte_10sock_async_10item | 21.383 us | 16.5207 us | 0.9335 us |
+| Take_10byte_30sock_async_10item | 22.547 us |  3.6320 us | 0.2052 us |
+|      Take_10byte_2sock_pipeline |  6.301 us |  1.8376 us | 0.1038 us |
+|     Take_10byte_10sock_pipeline |  5.949 us |  2.8413 us | 0.1605 us |
+|     Take_10byte_30sock_pipeline |  6.673 us |  4.2911 us | 0.2425 us |
+|   Take_10byte_2sock_pipeline_10 | 29.744 us | 20.4818 us | 1.1573 us |
+|  Take_10byte_10sock_pipeline_10 | 25.569 us | 10.5866 us | 0.5982 us |
+|  Take_10byte_30sock_pipeline_10 | 23.797 us |  3.4032 us | 0.1923 us |
+|        Take_10byte_2sock_loop_2 | 35.643 us | 21.8902 us | 1.2368 us |
+|       Take_10byte_10sock_loop_2 | 35.144 us | 16.8500 us | 0.9521 us |
+|       Take_10byte_30sock_loop_2 | 35.683 us | 12.4644 us | 0.7043 us |

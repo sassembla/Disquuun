@@ -37,10 +37,10 @@ public partial class Tests
             {
 
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
         WaitUntil("_0_0_1_WaitOnOpen2Connection", () => !string.IsNullOrEmpty(conId), 5);
@@ -77,10 +77,10 @@ public partial class Tests
                 overed = true;
             },
             (i, e) => { },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
 
@@ -137,10 +137,10 @@ public partial class Tests
                 );
             },
             (i, e) => { },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
 
@@ -209,10 +209,10 @@ public partial class Tests
                 }
             },
             (i, e) => { },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
 
@@ -240,10 +240,10 @@ public partial class Tests
                 lock (_0_1_ConnectionFailedWithNoDisqueServerObject) e = e2;
                 // TestLogger.Log("e:" + e);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
 

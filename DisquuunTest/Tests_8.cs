@@ -30,14 +30,14 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
                 if (100 < currentSocketCount)
                 {
-                    return null;
+                    return;
                 }
-                return new Tuple<bool, int>(true, 1);
+                addSocket(true, 1);
             }
         );
 
@@ -107,14 +107,14 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
                 if (100 < currentSocketCount)
                 {
-                    return null;
+                    return;
                 }
-                return new Tuple<bool, int>(true, 1);
+                addSocket(true, 1);
             }
         );
 
@@ -182,14 +182,14 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
                 if (100 < currentSocketCount)
                 {
-                    return null;
+                    return;
                 }
-                return new Tuple<bool, int>(true, 1);
+                addSocket(true, 1);
             }
         );
 
@@ -263,14 +263,14 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
                 if (100 < currentSocketCount)
                 {
-                    return null;
+                    return;
                 }
-                return new Tuple<bool, int>(true, 1);
+                addSocket(true, 1);
             }
         );
 
@@ -342,14 +342,14 @@ public partial class Tests
                 TestLogger.Log("error, info:" + info + " e:" + e.Message, true);
                 throw e;
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
                 if (100 < currentSocketCount)
                 {
-                    return null;
+                    return;
                 }
-                return new Tuple<bool, int>(true, 1);
+                addSocket(true, 1);
             }
         );
 
@@ -428,14 +428,14 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
                 if (100 < currentSocketCount)
                 {
-                    return null;
+                    return;
                 }
-                return new Tuple<bool, int>(true, 1);
+                addSocket(true, 1);
             }
         );
 
@@ -509,14 +509,14 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
                 if (100 < currentSocketCount)
                 {
-                    return null;
+                    return;
                 }
-                return new Tuple<bool, int>(true, 1);
+                addSocket(true, 1);
             }
         );
 
@@ -593,14 +593,14 @@ public partial class Tests
             {
                 TestLogger.Log("error, info:" + info + " e:" + e.Message);
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
                 if (100 < currentSocketCount)
                 {
-                    return null;
+                    return;
                 }
-                return new Tuple<bool, int>(true, 1);
+                addSocket(true, 1);
             }
         );
 

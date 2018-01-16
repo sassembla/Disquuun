@@ -22,7 +22,7 @@ namespace DisquuunCore
             int defaultConnectionCount,
             Action<DisquuunSocket, int> OnSocketOpened,
             Action<DisquuunSocket, string, Exception> OnSocketConnectionFailed,
-            Func<int, Tuple<bool, int>> OnSocketShortage,
+            Action<int, Action<bool, int>> OnSocketShortage,
             IPEndPoint endPoint,
             long bufferSize)
         {
@@ -44,7 +44,7 @@ namespace DisquuunCore
             this.endPoint = endPoint;
             this.bufferSize = bufferSize;
         }
-        private Func<int, Tuple<bool, int>> OnSocketShortage;
+        private Action<int, Action<bool, int>> OnSocketShortage;
 
         public void Connect()
         {
@@ -130,15 +130,13 @@ namespace DisquuunCore
                             pressureContinuation = 0;
                             if (OnSocketShortage != null)
                             {
-                                var shouldAddSocket = OnSocketShortage(alertedSocketCount);
-                                if (shouldAddSocket == null)
+                                OnSocketShortage(alertedSocketCount, (shouldAddSocket, addSocketNum) =>
                                 {
-                                    // ignore.
-                                }
-                                else if (shouldAddSocket.Item1)
-                                {
-                                    AddNewSocket(shouldAddSocket.Item2);
-                                }
+                                    if (shouldAddSocket)
+                                    {
+                                        AddNewSocket(addSocketNum);
+                                    }
+                                });
                             }
                         }
                     }

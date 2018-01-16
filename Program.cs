@@ -49,10 +49,10 @@ namespace DisquuunTest
                     {
                         Console.WriteLine("socket e:" + e);
                     },
-                    currentSocketCount =>
+                    (currentSocketCount, addSocket) =>
                     {
 
-                        return new Tuple<bool, int>(true, 1);
+                        addSocket(true, 1);
                     }
                 );
                 waitHandle.WaitOne(Timeout.Infinite);
@@ -69,10 +69,10 @@ namespace DisquuunTest
                     {
                         Console.WriteLine("socket e:" + e);
                     },
-                    currentSocketCount =>
+                    (currentSocketCount, addSocket) =>
                     {
 
-                        return new Tuple<bool, int>(true, 1);
+                        addSocket(true, 1);
                     }
                 );
                 waitHandle.WaitOne(Timeout.Infinite);
@@ -89,10 +89,10 @@ namespace DisquuunTest
                     {
                         Console.WriteLine("socket e:" + e);
                     },
-                    currentSocketCount =>
+                    (currentSocketCount, addSocket) =>
                     {
 
-                        return new Tuple<bool, int>(true, 1);
+                        addSocket(true, 1);
                     }
                 );
                 waitHandle.WaitOne(Timeout.Infinite);

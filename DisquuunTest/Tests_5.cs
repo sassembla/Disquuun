@@ -23,10 +23,9 @@ public partial class Tests
             {
                 error = e;
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
-
-                return null;
+                return;
             }
         );
 
@@ -56,10 +55,10 @@ public partial class Tests
                     errors.Add(e);
                 }
             },
-            currentSocketCount =>
+            (currentSocketCount, addSocket) =>
             {
 
-                return null;
+                return;
             }
         );
 

@@ -14,15 +14,13 @@ namespace DisquuunTest
         static void Main(string[] args)
         {
 #if LOGIC_BENCH
+            Console.WriteLine("this is benchmark build.");
             BenchmarkRunner.Run<DisquuunBench>();
             return;
 #endif
-
             DisquuunTests.Start();
         }
     }
-
-
 
     [ShortRunJob]
     public class DisquuunBench

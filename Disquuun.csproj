@@ -6,6 +6,9 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DefineConstants>TRACE;DEBUG;NETCOREAPP2_0;</DefineConstants>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DefineConstants>LOGIC_BENCH</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="benchmarkdotnet" Version="0.10.11" />
   </ItemGroup>

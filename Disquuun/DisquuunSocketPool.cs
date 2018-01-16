@@ -16,6 +16,7 @@ namespace DisquuunCore
 
         private readonly IPEndPoint endPoint;
         private readonly long bufferSize;
+        private readonly Action<DisquuunSocket, string, Exception> OnSocketConnectionFailed;
 
         public DisquuunSocketPool(
             int defaultConnectionCount,
@@ -32,10 +33,12 @@ namespace DisquuunCore
                 this.OnSocketShortage = OnSocketShortage;
             }
 
+            this.OnSocketConnectionFailed = OnSocketConnectionFailed;
+
             this.sockets = new Hashtable();
             for (var i = 0; i < defaultConnectionCount; i++)
             {
-                this.sockets.Add(i, new DisquuunSocket(i, OnSocketOpened, this.OnReloaded, OnSocketConnectionFailed));
+                this.sockets.Add(i, new DisquuunSocket(i, OnSocketOpened, this.OnReloaded, this.OnSocketConnectionFailed));
             }
 
             this.endPoint = endPoint;
@@ -158,7 +161,7 @@ namespace DisquuunCore
                         }
                     },
                     this.OnReloaded,
-                    (newSocket, reason, err) => { }
+                    this.OnSocketConnectionFailed
                 );
 
                 newSock.Connect(endPoint, bufferSize);

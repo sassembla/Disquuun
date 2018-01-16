@@ -452,10 +452,6 @@ namespace DisquuunCore
                 default:
                     {
                         DisquuunLogger.Log("onsend error, " + args.SocketError, true);
-                        // if (Error != null) {
-                        // 	var error = new Exception("send error:" + socketError.ToString());
-                        // 	Error(error);
-                        // }
                         return;
                     }
             }

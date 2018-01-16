@@ -1,9 +1,9 @@
 # Disquuun
 
 C# Disque client.  
-ver 0.7.6 (only essential Disque commands and options are supported.)
+ver 0.7.7 (only essential Disque commands and options are supported.)
 
-DotNet Core 1.0 adopetd. Running on DotNet 3.5 ~ Core 1.1
+DotNet Core 1.0 adopetd. Running on DotNet 4.6 ~ Core 2.0
 
 ## Table of Contents
   * [Motivation](#motivation)
@@ -162,6 +162,35 @@ disquuun.Pipeline().Execute(
 	...
 );
 ```
+
+## Socket shortage detection
+you can add socket after start running.
+below is example.
+
+```C#
+disquuun = new Disquuun(DisquuunTests.TestDisqueHostStr, DisquuunTests.TestDisquePortNum, 1024, 10,
+    disquuunId =>
+    {
+        connectedCount++;
+    },
+    (info, e) =>
+    {
+        TestLogger.Log("error, info:" + info + " e:" + e);
+    },
+    currentSocketCount =>
+    {
+
+        if (100 < currentSocketCount)
+        {
+            return null;
+        }
+        return new Tuple<bool, int>(true, 1);
+    }
+);
+```
+
+add 1 more socket if need, until total socket count is under 100.
+
 
 ## Test
 This repository is DotNet Core project and runnable.

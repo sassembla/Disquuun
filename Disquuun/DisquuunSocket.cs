@@ -723,7 +723,7 @@ namespace DisquuunCore
             {
                 socketToken.socketState = SocketState.CLOSING;
                 socketToken.socket.Shutdown(SocketShutdown.Both);
-                // socketToken.socket.Dispose();
+                socketToken.socket.Dispose();
             }
             catch
             {
